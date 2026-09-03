@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { createClient } from "@/lib/supabase/client";
 
 const mobileNavigation = [
   {
@@ -42,13 +44,35 @@ const mobileNavigation = [
 
 export default function AdminTopbar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  async function handleSignOut() {
+    setIsSigningOut(true);
+
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Sign out failed:", error.message);
+      setIsSigningOut(false);
+      return;
+    }
+
+    setProfileMenuOpen(false);
+
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <>
@@ -157,34 +181,106 @@ export default function AdminTopbar() {
           <div className="hidden h-7 w-px bg-slate-200 sm:block" />
 
           {/* Admin Profile */}
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-violet-50"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
-              A
-            </div>
-
-            <div className="hidden text-left sm:block">
-              <p className="text-sm font-bold text-slate-800">
-                Admin ICONIA
-              </p>
-
-              <p className="text-xs text-slate-500">
-                Super Admin
-              </p>
-            </div>
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              className="hidden h-4 w-4 text-slate-400 sm:block"
+          <div className="relative">
+            <button
+              type="button"
+              aria-expanded={profileMenuOpen}
+              onClick={() =>
+                setProfileMenuOpen((current) => !current)
+              }
+              className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-violet-50"
             >
-              <path d="m7 10 5 5 5-5" />
-            </svg>
-          </button>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
+                A
+              </div>
+
+              <div className="hidden text-left sm:block">
+                <p className="text-sm font-bold text-slate-800">
+                  Admin ICONIA
+                </p>
+
+                <p className="text-xs text-slate-500">
+                  Super Admin
+                </p>
+              </div>
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className={`hidden h-4 w-4 text-slate-400 transition sm:block ${
+                  profileMenuOpen ? "rotate-180" : ""
+                }`}
+              >
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </button>
+
+            {/* Profile Dropdown */}
+            {profileMenuOpen && (
+              <div className="absolute right-0 top-12 w-60 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-xl shadow-violet-950/10">
+                <div className="border-b border-violet-100 px-4 py-4">
+                  <p className="text-sm font-bold text-slate-800">
+                    Admin ICONIA
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Super Admin
+                  </p>
+                </div>
+
+                <div className="p-2">
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      className="h-5 w-5"
+                    >
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M12 2v3" />
+                      <path d="M12 19v3" />
+                      <path d="m4.9 4.9 2.1 2.1" />
+                      <path d="m17 17 2.1 2.1" />
+                      <path d="M2 12h3" />
+                      <path d="M19 12h3" />
+                      <path d="m4.9 19.1 2.1-2.1" />
+                      <path d="m17 7 2.1-2.1" />
+                    </svg>
+
+                    Settings
+                  </Link>
+
+                  <button
+                    type="button"
+                    disabled={isSigningOut}
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      className="h-5 w-5"
+                    >
+                      <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" />
+                      <path d="M14 8l4 4-4 4" />
+                      <path d="M18 12H9" />
+                    </svg>
+
+                    {isSigningOut ? "Signing out..." : "Sign Out"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -296,6 +392,15 @@ export default function AdminTopbar() {
                     </div>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  disabled={isSigningOut}
+                  onClick={handleSignOut}
+                  className="mt-3 flex w-full items-center justify-center rounded-xl border border-red-100 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSigningOut ? "Signing out..." : "Sign Out"}
+                </button>
               </div>
             </div>
           </aside>
