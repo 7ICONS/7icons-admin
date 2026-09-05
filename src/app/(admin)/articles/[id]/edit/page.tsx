@@ -1,13 +1,50 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import ArticleForm from "@/components/articles/ArticleForm";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Create Article",
+  title: "Edit Article",
 };
 
-export default function NewArticlePage() {
+type EditArticlePageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export default async function EditArticlePage({
+  params,
+}: EditArticlePageProps) {
+  const { id } = await params;
+
+  const supabase = await createClient();
+
+  const { data: article, error } = await supabase
+    .from("articles")
+    .select(
+      `
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        category,
+        cover_image,
+        featured,
+        status,
+        published_at
+      `,
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !article) {
+    notFound();
+  }
+
   return (
     <section>
       <div className="mb-8">
@@ -33,15 +70,15 @@ export default function NewArticlePage() {
         </p>
 
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-          Create New Article
+          Edit Article
         </h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Create a new article for the 7ICONS digital platform.
+          Update article content and publishing settings.
         </p>
       </div>
 
-      <ArticleForm />
+      <ArticleForm article={article} />
     </section>
   );
 }
