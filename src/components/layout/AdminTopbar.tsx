@@ -2,68 +2,192 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
 import { useState } from "react";
 
+import {
+  hasPermission,
+  type AdminPermission,
+  type AdminRole,
+} from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/client";
 
-const mobileNavigation = [
+type AdminTopbarProps = {
+  displayName: string;
+  email: string;
+  avatarUrl: string;
+  role: AdminRole;
+  roleLabel: string;
+};
+
+type MobileNavigationItem = {
+  label: string;
+  href: string;
+  permission: AdminPermission;
+};
+
+const mobileNavigation: MobileNavigationItem[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
+    permission: "dashboard.view",
   },
   {
     label: "Articles",
     href: "/articles",
+    permission: "articles.view",
   },
   {
     label: "Members",
     href: "/members",
+    permission: "members.manage",
+  },
+  {
+    label: "Gallery",
+    href: "/gallery",
+    permission: "gallery.view",
   },
   {
     label: "Schedule",
     href: "/schedule",
+    permission: "schedule.manage",
   },
   {
     label: "Fan Representatives",
     href: "/representatives",
+    permission:
+      "representatives.manage",
+  },
+  {
+    label: "Applications",
+    href: "/applications",
+    permission: "applications.view",
   },
   {
     label: "Users",
     href: "/users",
+    permission: "users.view",
   },
   {
     label: "Comments",
     href: "/comments",
+    permission: "comments.view",
   },
   {
     label: "Media",
     href: "/media",
+    permission: "media.view",
+  },
+  {
+    label: "Team",
+    href: "/team",
+    permission: "team.view",
   },
 ];
 
-export default function AdminTopbar() {
+function getInitials(
+  displayName: string,
+  email: string,
+) {
+  const source =
+    displayName.trim() ||
+    email.split("@")[0] ||
+    "A";
+
+  const words = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  return (
+    words
+      .map((word) =>
+        word.charAt(0).toUpperCase(),
+      )
+      .join("") || "A"
+  );
+}
+
+export default function AdminTopbar({
+  displayName,
+  email,
+  avatarUrl,
+  role,
+  roleLabel,
+}: AdminTopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [
+    searchOpen,
+    setSearchOpen,
+  ] = useState(false);
 
-  const isActive = (href: string) => {
-    return pathname === href || pathname.startsWith(`${href}/`);
+  const [
+    mobileMenuOpen,
+    setMobileMenuOpen,
+  ] = useState(false);
+
+  const [
+    profileMenuOpen,
+    setProfileMenuOpen,
+  ] = useState(false);
+
+  const [
+    isSigningOut,
+    setIsSigningOut,
+  ] = useState(false);
+
+  const initials =
+    getInitials(
+      displayName,
+      email,
+    );
+
+  const visibleNavigation =
+    mobileNavigation.filter(
+      (item) =>
+        hasPermission(
+          role,
+          item.permission,
+        ),
+    );
+
+  const canViewSettings =
+    hasPermission(
+      role,
+      "settings.view",
+    );
+
+  const isActive = (
+    href: string,
+  ) => {
+    return (
+      pathname === href ||
+      pathname.startsWith(
+        `${href}/`,
+      )
+    );
   };
 
   async function handleSignOut() {
     setIsSigningOut(true);
 
-    const supabase = createClient();
+    const supabase =
+      createClient();
 
-    const { error } = await supabase.auth.signOut();
+    const { error } =
+      await supabase.auth.signOut();
 
     if (error) {
-      console.error("Sign out failed:", error.message);
+      console.error(
+        "Sign out failed:",
+        error.message,
+      );
+
       setIsSigningOut(false);
       return;
     }
@@ -83,8 +207,12 @@ export default function AdminTopbar() {
           <button
             type="button"
             aria-label="Open navigation menu"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(true)}
+            aria-expanded={
+              mobileMenuOpen
+            }
+            onClick={() =>
+              setMobileMenuOpen(true)
+            }
             className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-violet-50 hover:text-violet-700 lg:hidden"
           >
             <svg
@@ -125,7 +253,11 @@ export default function AdminTopbar() {
                     strokeWidth="1.8"
                     className="h-4 w-4 shrink-0 text-violet-500"
                   >
-                    <circle cx="11" cy="11" r="7" />
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="7"
+                    />
                     <path d="m20 20-4-4" />
                   </svg>
 
@@ -142,7 +274,12 @@ export default function AdminTopbar() {
             <button
               type="button"
               aria-label="Search"
-              onClick={() => setSearchOpen((current) => !current)}
+              onClick={() =>
+                setSearchOpen(
+                  (current) =>
+                    !current,
+                )
+              }
               className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
             >
               <svg
@@ -152,7 +289,11 @@ export default function AdminTopbar() {
                 strokeWidth="1.8"
                 className="h-5 w-5"
               >
-                <circle cx="11" cy="11" r="7" />
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="7"
+                />
                 <path d="m20 20-4-4" />
               </svg>
             </button>
@@ -184,23 +325,41 @@ export default function AdminTopbar() {
           <div className="relative">
             <button
               type="button"
-              aria-expanded={profileMenuOpen}
+              aria-expanded={
+                profileMenuOpen
+              }
               onClick={() =>
-                setProfileMenuOpen((current) => !current)
+                setProfileMenuOpen(
+                  (current) =>
+                    !current,
+                )
               }
               className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-violet-50"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
-                A
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
+                {avatarUrl ? (
+                  <div
+                    role="img"
+                    aria-label={
+                      displayName
+                    }
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url("${avatarUrl}")`,
+                    }}
+                  />
+                ) : (
+                  initials
+                )}
               </div>
 
-              <div className="hidden text-left sm:block">
-                <p className="text-sm font-bold text-slate-800">
-                  Admin ICONIA
+              <div className="hidden min-w-0 text-left sm:block">
+                <p className="max-w-40 truncate text-sm font-bold text-slate-800">
+                  {displayName}
                 </p>
 
-                <p className="text-xs text-slate-500">
-                  Super Admin
+                <p className="max-w-40 truncate text-xs text-slate-500">
+                  {roleLabel}
                 </p>
               </div>
 
@@ -210,7 +369,9 @@ export default function AdminTopbar() {
                 stroke="currentColor"
                 strokeWidth="1.8"
                 className={`hidden h-4 w-4 text-slate-400 transition sm:block ${
-                  profileMenuOpen ? "rotate-180" : ""
+                  profileMenuOpen
+                    ? "rotate-180"
+                    : ""
                 }`}
               >
                 <path d="m7 10 5 5 5-5" />
@@ -219,48 +380,68 @@ export default function AdminTopbar() {
 
             {/* Profile Dropdown */}
             {profileMenuOpen && (
-              <div className="absolute right-0 top-12 w-60 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-xl shadow-violet-950/10">
+              <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-xl shadow-violet-950/10">
                 <div className="border-b border-violet-100 px-4 py-4">
-                  <p className="text-sm font-bold text-slate-800">
-                    Admin ICONIA
+                  <p className="truncate text-sm font-bold text-slate-800">
+                    {displayName}
                   </p>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    Super Admin
-                  </p>
+                  {email && (
+                    <p className="mt-1 truncate text-xs text-slate-500">
+                      {email}
+                    </p>
+                  )}
+
+                  <span className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-violet-700">
+                    {roleLabel}
+                  </span>
                 </div>
 
                 <div className="p-2">
-                  <Link
-                    href="/settings"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      className="h-5 w-5"
+                  {canViewSettings && (
+                    <Link
+                      href="/settings"
+                      onClick={() =>
+                        setProfileMenuOpen(
+                          false,
+                        )
+                      }
+                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
                     >
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M12 2v3" />
-                      <path d="M12 19v3" />
-                      <path d="m4.9 4.9 2.1 2.1" />
-                      <path d="m17 17 2.1 2.1" />
-                      <path d="M2 12h3" />
-                      <path d="M19 12h3" />
-                      <path d="m4.9 19.1 2.1-2.1" />
-                      <path d="m17 7 2.1-2.1" />
-                    </svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        className="h-5 w-5"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="3"
+                        />
+                        <path d="M12 2v3" />
+                        <path d="M12 19v3" />
+                        <path d="m4.9 4.9 2.1 2.1" />
+                        <path d="m17 17 2.1 2.1" />
+                        <path d="M2 12h3" />
+                        <path d="M19 12h3" />
+                        <path d="m4.9 19.1 2.1-2.1" />
+                        <path d="m17 7 2.1-2.1" />
+                      </svg>
 
-                    Settings
-                  </Link>
+                      Settings
+                    </Link>
+                  )}
 
                   <button
                     type="button"
-                    disabled={isSigningOut}
-                    onClick={handleSignOut}
+                    disabled={
+                      isSigningOut
+                    }
+                    onClick={
+                      handleSignOut
+                    }
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <svg
@@ -275,7 +456,9 @@ export default function AdminTopbar() {
                       <path d="M18 12H9" />
                     </svg>
 
-                    {isSigningOut ? "Signing out..." : "Sign Out"}
+                    {isSigningOut
+                      ? "Signing out..."
+                      : "Sign Out"}
                   </button>
                 </div>
               </div>
@@ -291,7 +474,9 @@ export default function AdminTopbar() {
           <button
             type="button"
             aria-label="Close navigation menu"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() =>
+              setMobileMenuOpen(false)
+            }
             className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"
           />
 
@@ -301,7 +486,9 @@ export default function AdminTopbar() {
             <div className="flex h-20 items-center justify-between border-b border-violet-100 px-5">
               <Link
                 href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() =>
+                  setMobileMenuOpen(false)
+                }
               >
                 <Image
                   src="/brand/7icons-admin-logo.png"
@@ -316,7 +503,9 @@ export default function AdminTopbar() {
               <button
                 type="button"
                 aria-label="Close navigation menu"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() =>
+                  setMobileMenuOpen(false)
+                }
                 className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-violet-50 hover:text-violet-700"
               >
                 <svg
@@ -333,61 +522,95 @@ export default function AdminTopbar() {
             </div>
 
             {/* Navigation */}
-            <div className="flex flex-1 flex-col overflow-y-auto px-4 py-5">
+            <div className="flex flex-1 flex-col overflow-y-auto px-4 py-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <p className="mb-3 px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Management
               </p>
 
               <nav className="space-y-1.5">
-                {mobileNavigation.map((item) => {
-                  const active = isActive(item.href);
+                {visibleNavigation.map(
+                  (item) => {
+                    const active =
+                      isActive(
+                        item.href,
+                      );
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                        active
-                          ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white shadow-lg shadow-violet-500/15"
-                          : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                    return (
+                      <Link
+                        key={
+                          item.href
+                        }
+                        href={
+                          item.href
+                        }
+                        onClick={() =>
+                          setMobileMenuOpen(
+                            false,
+                          )
+                        }
+                        className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                          active
+                            ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white shadow-lg shadow-violet-500/15"
+                            : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  },
+                )}
               </nav>
 
               {/* Bottom */}
               <div className="mt-auto pt-7">
                 <div className="mb-4 border-t border-violet-100" />
 
-                <Link
-                  href="/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                    isActive("/settings")
-                      ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white"
-                      : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
-                  }`}
-                >
-                  Settings
-                </Link>
+                {canViewSettings && (
+                  <Link
+                    href="/settings"
+                    onClick={() =>
+                      setMobileMenuOpen(
+                        false,
+                      )
+                    }
+                    className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                      isActive(
+                        "/settings",
+                      )
+                        ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white"
+                        : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
+                    }`}
+                  >
+                    Settings
+                  </Link>
+                )}
 
                 <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white">
-                      A
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white">
+                      {avatarUrl ? (
+                        <div
+                          role="img"
+                          aria-label={
+                            displayName
+                          }
+                          className="absolute inset-0 bg-cover bg-center"
+                          style={{
+                            backgroundImage: `url("${avatarUrl}")`,
+                          }}
+                        />
+                      ) : (
+                        initials
+                      )}
                     </div>
 
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-slate-800">
-                        Admin ICONIA
+                        {displayName}
                       </p>
 
                       <p className="truncate text-xs text-slate-500">
-                        Super Admin
+                        {roleLabel}
                       </p>
                     </div>
                   </div>
@@ -395,11 +618,17 @@ export default function AdminTopbar() {
 
                 <button
                   type="button"
-                  disabled={isSigningOut}
-                  onClick={handleSignOut}
+                  disabled={
+                    isSigningOut
+                  }
+                  onClick={
+                    handleSignOut
+                  }
                   className="mt-3 flex w-full items-center justify-center rounded-xl border border-red-100 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isSigningOut ? "Signing out..." : "Sign Out"}
+                  {isSigningOut
+                    ? "Signing out..."
+                    : "Sign Out"}
                 </button>
               </div>
             </div>
