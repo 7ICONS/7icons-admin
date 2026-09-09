@@ -85,12 +85,15 @@ const navigation: NavigationItem[] = [
           cy="8"
           r="3"
         />
+
         <path d="M3.5 19c.6-3.3 2.4-5 5.5-5s4.9 1.7 5.5 5" />
+
         <circle
           cx="17"
           cy="9"
           r="2.2"
         />
+
         <path d="M15.5 14.5c2.7-.4 4.5 1 5 3.5" />
       </svg>
     ),
@@ -114,11 +117,13 @@ const navigation: NavigationItem[] = [
           height="16"
           rx="2"
         />
+
         <circle
           cx="9"
           cy="9"
           r="2"
         />
+
         <path d="m4 18 5-5 3 3 2-2 6 6" />
       </svg>
     ),
@@ -142,6 +147,7 @@ const navigation: NavigationItem[] = [
           height="16"
           rx="2"
         />
+
         <path d="M7 3v4" />
         <path d="M17 3v4" />
         <path d="M3 10h18" />
@@ -165,11 +171,13 @@ const navigation: NavigationItem[] = [
           cy="8"
           r="3"
         />
+
         <circle
           cx="17"
           cy="9"
           r="2.4"
         />
+
         <path d="M2.5 19c.5-3.5 2.4-5.4 5.5-5.4 3.2 0 5 1.9 5.5 5.4" />
         <path d="M14.5 15c3-.5 5.2 1 6 4" />
       </svg>
@@ -194,6 +202,7 @@ const navigation: NavigationItem[] = [
           height="17"
           rx="2"
         />
+
         <path d="M9 4.5V3h6v1.5" />
         <path d="M8 9h8" />
         <path d="M8 13h8" />
@@ -218,6 +227,7 @@ const navigation: NavigationItem[] = [
           cy="8"
           r="3.5"
         />
+
         <path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" />
       </svg>
     ),
@@ -257,11 +267,13 @@ const navigation: NavigationItem[] = [
           height="16"
           rx="2"
         />
+
         <circle
           cx="9"
           cy="9"
           r="2"
         />
+
         <path d="m4 18 5-5 3 3 2-2 6 6" />
       </svg>
     ),
@@ -283,11 +295,13 @@ const navigation: NavigationItem[] = [
           cy="8"
           r="3"
         />
+
         <circle
           cx="17"
           cy="9"
           r="2.5"
         />
+
         <path d="M3 20c.6-4 2.6-6 6-6s5.4 2 6 6" />
         <path d="M15 14.5c3-.2 5 1.6 5.5 4.5" />
         <path d="M18.5 4.5v5" />
@@ -309,7 +323,9 @@ function getInitials(
   return (
     words
       .map((word) =>
-        word.charAt(0).toUpperCase(),
+        word
+          .charAt(0)
+          .toUpperCase(),
       )
       .join("") || "A"
   );
@@ -353,9 +369,9 @@ export default function AdminSidebar({
   };
 
   return (
-    <aside className="hidden h-screen w-[280px] shrink-0 flex-col border-r border-violet-100 bg-white lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 self-start overflow-hidden border-r border-violet-100 bg-white lg:flex lg:flex-col">
       {/* Brand */}
-      <div className="flex h-24 items-center border-b border-violet-50 px-7">
+      <div className="flex h-20 shrink-0 items-center border-b border-violet-50 px-7">
         <Link
           href="/dashboard"
           className="block"
@@ -371,57 +387,58 @@ export default function AdminSidebar({
         </Link>
       </div>
 
-      {/* Navigation */}
-      <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <p className="mb-3 px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
-          Management
-        </p>
+      {/* Navigation Area */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Scrollable Navigation Only */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <p className="mb-3 px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            Management
+          </p>
 
-        <nav className="space-y-1.5">
-          {visibleNavigation.map(
-            (item) => {
-              const active =
-                isActive(
-                  item.href,
-                );
+          <nav className="space-y-1">
+            {visibleNavigation.map(
+              (item) => {
+                const active =
+                  isActive(
+                    item.href,
+                  );
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                    active
-                      ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white shadow-lg shadow-violet-500/15"
-                      : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
-                  }`}
-                >
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                       active
-                        ? "bg-white/15"
-                        : "bg-violet-50 text-violet-600"
+                        ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white shadow-lg shadow-violet-500/15"
+                        : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
                     }`}
                   >
-                    {item.icon}
-                  </span>
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${
+                        active
+                          ? "bg-white/15"
+                          : "bg-violet-50 text-violet-600"
+                      }`}
+                    >
+                      {item.icon}
+                    </span>
 
-                  <span className="truncate">
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            },
-          )}
-        </nav>
+                    <span className="truncate">
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              },
+            )}
+          </nav>
+        </div>
 
-        {/* Bottom */}
-        <div className="mt-auto pt-8">
-          <div className="mb-5 border-t border-violet-100" />
-
+        {/* Fixed Bottom */}
+        <div className="shrink-0 border-t border-violet-100 bg-white px-4 py-4">
           {canViewSettings && (
             <Link
               href="/settings"
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                 isActive(
                   "/settings",
                 )
@@ -430,7 +447,7 @@ export default function AdminSidebar({
               }`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                   isActive(
                     "/settings",
                   )
@@ -462,7 +479,13 @@ export default function AdminSidebar({
           )}
 
           {/* Current Admin */}
-          <div className="mt-5 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+          <div
+            className={`rounded-2xl border border-violet-100 bg-violet-50/60 p-3 ${
+              canViewSettings
+                ? "mt-3"
+                : ""
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white">
                 {avatarUrl ? (

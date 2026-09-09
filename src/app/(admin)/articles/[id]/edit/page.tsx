@@ -3,10 +3,38 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ArticleForm from "@/components/articles/ArticleForm";
+import ArticleReviewPanel from "@/components/articles/ArticleReviewPanel";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Edit Article",
+};
+
+type PlatformRole =
+  | "super_admin"
+  | "admin"
+  | "editor"
+  | "moderator"
+  | "representative";
+
+type ArticleStatus =
+  | "draft"
+  | "under_review"
+  | "published"
+  | "rejected"
+  | "archived";
+
+type ArticleData = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  cover_image: string | null;
+  featured: boolean;
+  status: ArticleStatus;
+  published_at: string | null;
 };
 
 type EditArticlePageProps = {
@@ -18,11 +46,63 @@ type EditArticlePageProps = {
 export default async function EditArticlePage({
   params,
 }: EditArticlePageProps) {
-  const { id } = await params;
+  const { id } =
+    await params;
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
-  const { data: article, error } = await supabase
+  /*
+   * Current authenticated account.
+   */
+  const {
+    data: authData,
+  } = await supabase.auth.getUser();
+
+  let currentRole:
+    | PlatformRole
+    | null = null;
+
+  if (authData.user) {
+    const {
+      data: roleData,
+    } = await supabase
+      .from("admin_roles")
+      .select(
+        `
+          role,
+          is_active
+        `,
+      )
+      .eq(
+        "user_id",
+        authData.user.id,
+      )
+      .maybeSingle();
+
+    if (
+      roleData?.is_active
+    ) {
+      currentRole =
+        roleData.role as PlatformRole;
+    }
+  }
+
+  const canReviewArticles =
+    currentRole ===
+      "super_admin" ||
+    currentRole ===
+      "admin" ||
+    currentRole ===
+      "editor";
+
+  /*
+   * Article.
+   */
+  const {
+    data,
+    error,
+  } = await supabase
     .from("articles")
     .select(
       `
@@ -41,12 +121,24 @@ export default async function EditArticlePage({
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !article) {
+  if (
+    error ||
+    !data
+  ) {
     notFound();
   }
 
+  const article =
+    data as ArticleData;
+
+  const showReviewPanel =
+    article.status ===
+      "under_review" &&
+    canReviewArticles;
+
   return (
     <section>
+      {/* Header */}
       <div className="mb-8">
         <Link
           href="/articles"
@@ -66,19 +158,44 @@ export default async function EditArticlePage({
         </Link>
 
         <p className="mt-6 text-sm font-semibold text-violet-600">
-          Article Management
+          {showReviewPanel
+            ? "Article Review"
+            : "Article Management"}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-          Edit Article
+          {showReviewPanel
+            ? "Review Article"
+            : "Edit Article"}
         </h1>
 
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          Update article content and publishing settings.
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          {showReviewPanel
+            ? "Review the submitted article, make any necessary content adjustments, and choose whether to publish it or return it for revision."
+            : "Update article content and publishing settings."}
         </p>
       </div>
 
-      <ArticleForm article={article} />
+      {/* Staff Review */}
+      {showReviewPanel && (
+        <div className="mb-6">
+          <ArticleReviewPanel
+            articleId={
+              article.id
+            }
+            articleTitle={
+              article.title
+            }
+          />
+        </div>
+      )}
+
+      {/* Article Form */}
+      <ArticleForm
+        article={
+          article
+        }
+      />
     </section>
   );
 }
