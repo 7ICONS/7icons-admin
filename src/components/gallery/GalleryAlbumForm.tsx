@@ -3,6 +3,7 @@
 import {
   FormEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -17,6 +18,20 @@ export type GalleryCategory =
   | "Fan Moments"
   | "Other";
 
+type AdminRole =
+  | "super_admin"
+  | "admin"
+  | "editor"
+  | "moderator"
+  | "representative";
+
+export type GalleryAlbumStatus =
+  | "draft"
+  | "under_review"
+  | "published"
+  | "rejected"
+  | "archived";
+
 export type GalleryAlbumData = {
   id: string;
   title: string;
@@ -26,6 +41,8 @@ export type GalleryAlbumData = {
   is_published: boolean;
   is_featured: boolean;
   sort_order: number;
+  status?: GalleryAlbumStatus;
+  review_notes?: string | null;
 };
 
 export type GalleryAlbumPhotoData = {
@@ -85,7 +102,10 @@ export default function GalleryAlbumForm({
   existingPhotos = [],
 }: GalleryAlbumFormProps) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(
+    () => createClient(),
+    [],
+  );
 
   const fileInputRef =
     useRef<HTMLInputElement | null>(null);
@@ -112,7 +132,7 @@ export default function GalleryAlbumForm({
 
   const [isPublished, setIsPublished] =
     useState(
-      album?.is_published ?? true,
+      album?.is_published ?? false,
     );
 
   const [isFeatured, setIsFeatured] =
@@ -143,6 +163,97 @@ export default function GalleryAlbumForm({
 
   const [progressMessage, setProgressMessage] =
     useState("");
+
+  const [currentRole, setCurrentRole] =
+    useState<AdminRole | null>(null);
+
+  const [roleResolved, setRoleResolved] =
+    useState(false);
+
+  const [currentAlbumStatus, setCurrentAlbumStatus] =
+    useState<GalleryAlbumStatus>(
+      album?.status ??
+        (album?.is_published
+          ? "published"
+          : "draft"),
+    );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRoleAndStatus() {
+      try {
+        const { data: userData } =
+          await supabase.auth.getUser();
+
+        const user = userData.user;
+
+        if (!user) {
+          if (!cancelled) {
+            setCurrentRole(null);
+            setRoleResolved(true);
+          }
+
+          return;
+        }
+
+        const { data: roleData } =
+          await supabase
+            .from("admin_roles")
+            .select("role, is_active")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (!cancelled) {
+          setCurrentRole(
+            roleData?.is_active
+              ? (roleData.role as AdminRole)
+              : null,
+          );
+        }
+
+        if (album?.id) {
+          const { data: latestAlbum } =
+            await supabase
+              .from("gallery_albums")
+              .select("status")
+              .eq("id", album.id)
+              .maybeSingle();
+
+          if (
+            !cancelled &&
+            latestAlbum?.status
+          ) {
+            setCurrentAlbumStatus(
+              latestAlbum.status as GalleryAlbumStatus,
+            );
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setRoleResolved(true);
+        }
+      }
+    }
+
+    void loadRoleAndStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [album?.id, supabase]);
+
+  const isRepresentative =
+    currentRole === "representative";
+
+  const isRepresentativeLocked =
+    isRepresentative &&
+    isEditing &&
+    [
+      "under_review",
+      "published",
+      "archived",
+    ].includes(currentAlbumStatus);
 
   useEffect(() => {
     const previews =
@@ -175,6 +286,14 @@ export default function GalleryAlbumForm({
     files: FileList | null,
   ) {
     setErrorMessage("");
+
+    if (isRepresentativeLocked) {
+      setErrorMessage(
+        "This album is locked and cannot be edited while it is under review or already published.",
+      );
+
+      return;
+    }
 
     if (!files) {
       return;
@@ -259,6 +378,10 @@ export default function GalleryAlbumForm({
   function removeSelectedFile(
     index: number,
   ) {
+    if (isRepresentativeLocked) {
+      return;
+    }
+
     setSelectedFiles((current) =>
       current.filter(
         (_, fileIndex) =>
@@ -268,6 +391,10 @@ export default function GalleryAlbumForm({
   }
 
   function clearSelectedFiles() {
+    if (isRepresentativeLocked) {
+      return;
+    }
+
     setSelectedFiles([]);
 
     if (fileInputRef.current) {
@@ -278,6 +405,10 @@ export default function GalleryAlbumForm({
   function toggleRemoveExistingPhoto(
     photoId: string,
   ) {
+    if (isRepresentativeLocked) {
+      return;
+    }
+
     setRemovedPhotoIds(
       (current) =>
         current.includes(photoId)
@@ -399,6 +530,7 @@ export default function GalleryAlbumForm({
 
   async function handleCreate(
     userId: string,
+    representativeAccount: boolean,
   ) {
     const uploaded =
       await uploadSelectedFiles(
@@ -432,10 +564,21 @@ export default function GalleryAlbumForm({
             description.trim(),
 
           is_published:
-            isPublished,
+            representativeAccount
+              ? false
+              : isPublished,
 
           is_featured:
-            isFeatured,
+            representativeAccount
+              ? false
+              : isFeatured,
+
+          status:
+            representativeAccount
+              ? "draft"
+              : isPublished
+                ? "published"
+                : "draft",
 
           sort_order:
             sortOrder,
@@ -522,9 +665,23 @@ export default function GalleryAlbumForm({
 
   async function handleUpdate(
     userId: string,
+    representativeAccount: boolean,
   ) {
     if (!album) {
       return;
+    }
+
+    if (
+      representativeAccount &&
+      [
+        "under_review",
+        "published",
+        "archived",
+      ].includes(currentAlbumStatus)
+    ) {
+      throw new Error(
+        "This album is locked and cannot be edited in its current status.",
+      );
     }
 
     const uploaded =
@@ -553,10 +710,28 @@ export default function GalleryAlbumForm({
               description.trim(),
 
             is_published:
-              isPublished,
+              representativeAccount
+                ? false
+                : isPublished,
 
             is_featured:
-              isFeatured,
+              representativeAccount
+                ? false
+                : isFeatured,
+
+            status:
+              representativeAccount
+                ? "draft"
+                : isPublished
+                  ? "published"
+                  : currentAlbumStatus ===
+                        "under_review" ||
+                      currentAlbumStatus ===
+                        "rejected" ||
+                      currentAlbumStatus ===
+                        "archived"
+                    ? currentAlbumStatus
+                    : "draft",
 
             sort_order:
               sortOrder,
@@ -682,6 +857,22 @@ export default function GalleryAlbumForm({
     setErrorMessage("");
     setProgressMessage("");
 
+    if (!roleResolved) {
+      setErrorMessage(
+        "Your account permissions are still loading. Please try again in a moment.",
+      );
+
+      return;
+    }
+
+    if (isRepresentativeLocked) {
+      setErrorMessage(
+        "This album is locked and cannot be edited in its current status.",
+      );
+
+      return;
+    }
+
     if (!title.trim()) {
       setErrorMessage(
         "Album title is required.",
@@ -738,13 +929,35 @@ export default function GalleryAlbumForm({
         );
       }
 
+      const { data: roleData } =
+        await supabase
+          .from("admin_roles")
+          .select("role, is_active")
+          .eq(
+            "user_id",
+            userData.user.id,
+          )
+          .maybeSingle();
+
+      if (!roleData?.is_active) {
+        throw new Error(
+          "Your account does not have an active Gallery role.",
+        );
+      }
+
+      const representativeAccount =
+        roleData.role ===
+        "representative";
+
       if (album) {
         await handleUpdate(
           userData.user.id,
+          representativeAccount,
         );
       } else {
         await handleCreate(
           userData.user.id,
+          representativeAccount,
         );
       }
 
@@ -772,6 +985,24 @@ export default function GalleryAlbumForm({
       onSubmit={handleSubmit}
       className="space-y-6"
     >
+      {!roleResolved && (
+        <div className="rounded-2xl border border-violet-100 bg-violet-50 px-5 py-4 text-sm font-semibold text-violet-700">
+          Loading account permissions...
+        </div>
+      )}
+
+      {isRepresentativeLocked && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+          <p className="text-sm font-semibold text-blue-800">
+            Album Locked
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-blue-700/80">
+            This album cannot be edited while it is under review, published, or archived.
+          </p>
+        </div>
+      )}
+
       {/* Error */}
       {errorMessage && (
         <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
@@ -823,6 +1054,10 @@ export default function GalleryAlbumForm({
               }
               placeholder="7ICONS Live Performance"
               required
+              disabled={
+                isSubmitting ||
+                isRepresentativeLocked
+              }
               className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             />
           </div>
@@ -839,6 +1074,10 @@ export default function GalleryAlbumForm({
             <select
               id="album-category"
               value={category}
+              disabled={
+                isSubmitting ||
+                isRepresentativeLocked
+              }
               onChange={(event) =>
                 setCategory(
                   event.target
@@ -873,6 +1112,10 @@ export default function GalleryAlbumForm({
               id="album-date"
               type="date"
               value={albumDate}
+              disabled={
+                isSubmitting ||
+                isRepresentativeLocked
+              }
               onChange={(event) =>
                 setAlbumDate(
                   event.target.value,
@@ -897,6 +1140,10 @@ export default function GalleryAlbumForm({
               min="0"
               step="1"
               value={sortOrder}
+              disabled={
+                isSubmitting ||
+                isRepresentativeLocked
+              }
               onChange={(event) =>
                 setSortOrder(
                   Number(
@@ -921,6 +1168,10 @@ export default function GalleryAlbumForm({
           <textarea
             id="album-description"
             value={description}
+            disabled={
+              isSubmitting ||
+              isRepresentativeLocked
+            }
             onChange={(event) =>
               setDescription(
                 event.target.value,
@@ -964,6 +1215,10 @@ export default function GalleryAlbumForm({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           multiple
+          disabled={
+            isSubmitting ||
+            isRepresentativeLocked
+          }
           className="hidden"
           onChange={(event) =>
             handleFileSelection(
@@ -978,8 +1233,10 @@ export default function GalleryAlbumForm({
             fileInputRef.current?.click()
           }
           disabled={
+            isSubmitting ||
+            isRepresentativeLocked ||
             totalPhotoCount >=
-            maxPhotosPerAlbum
+              maxPhotosPerAlbum
           }
           className="mt-6 flex min-h-[180px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-6 py-8 text-center transition hover:border-violet-300 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -1047,6 +1304,10 @@ export default function GalleryAlbumForm({
                               photo.id,
                             )
                           }
+                          disabled={
+                            isSubmitting ||
+                            isRepresentativeLocked
+                          }
                           className={[
                             "mt-3 text-xs font-semibold",
                             removed
@@ -1080,6 +1341,10 @@ export default function GalleryAlbumForm({
                 type="button"
                 onClick={
                   clearSelectedFiles
+                }
+                disabled={
+                  isSubmitting ||
+                  isRepresentativeLocked
                 }
                 className="text-xs font-semibold text-red-500 hover:text-red-700"
               >
@@ -1122,6 +1387,10 @@ export default function GalleryAlbumForm({
                             index,
                           )
                         }
+                        disabled={
+                          isSubmitting ||
+                          isRepresentativeLocked
+                        }
                         className="mt-3 text-xs font-semibold text-red-500 hover:text-red-700"
                       >
                         Remove
@@ -1142,58 +1411,104 @@ export default function GalleryAlbumForm({
         </p>
 
         <h2 className="mt-1 text-xl font-bold text-slate-950">
-          Visibility & Highlight
+          {isRepresentative
+            ? "Representative Workflow"
+            : "Visibility & Highlight"}
         </h2>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <label className="flex min-h-[82px] cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">
-                Published
-              </p>
+        {isRepresentative ? (
+          <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/50 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  {currentAlbumStatus ===
+                  "rejected"
+                    ? "Revision Draft"
+                    : currentAlbumStatus ===
+                        "under_review"
+                      ? "Under Review"
+                      : currentAlbumStatus ===
+                          "published"
+                        ? "Published"
+                        : currentAlbumStatus ===
+                            "archived"
+                          ? "Archived"
+                          : "Draft"}
+                </p>
 
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                Show this album on the
-                public Gallery.
-              </p>
+                <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
+                  {currentAlbumStatus ===
+                  "rejected"
+                    ? "Update the requested changes and save this album as a draft before submitting it for review again."
+                    : currentAlbumStatus ===
+                        "under_review"
+                      ? "This album is waiting for staff review and cannot be edited right now."
+                      : currentAlbumStatus ===
+                          "published"
+                        ? "This album has been published by staff and is locked for Representative editing."
+                        : currentAlbumStatus ===
+                            "archived"
+                          ? "This album has been archived and is locked for Representative editing."
+                          : "Your album will be saved privately as a draft. Publishing and Featured controls are managed by staff."}
+                </p>
+              </div>
+
+              <span className="inline-flex w-fit rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-semibold text-violet-700">
+                Staff approval required
+              </span>
             </div>
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <label className="flex min-h-[82px] cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  Published
+                </p>
 
-            <input
-              type="checkbox"
-              checked={isPublished}
-              onChange={(event) =>
-                setIsPublished(
-                  event.target.checked,
-                )
-              }
-              className="h-4 w-4 accent-violet-600"
-            />
-          </label>
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Show this album on the public Gallery.
+                </p>
+              </div>
 
-          <label className="flex min-h-[82px] cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">
-                Featured
-              </p>
+              <input
+                type="checkbox"
+                checked={isPublished}
+                disabled={isSubmitting}
+                onChange={(event) =>
+                  setIsPublished(
+                    event.target.checked,
+                  )
+                }
+                className="h-4 w-4 accent-violet-600"
+              />
+            </label>
 
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                Mark this album as a
-                Gallery highlight.
-              </p>
-            </div>
+            <label className="flex min-h-[82px] cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  Featured
+                </p>
 
-            <input
-              type="checkbox"
-              checked={isFeatured}
-              onChange={(event) =>
-                setIsFeatured(
-                  event.target.checked,
-                )
-              }
-              className="h-4 w-4 accent-violet-600"
-            />
-          </label>
-        </div>
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Mark this album as a Gallery highlight.
+                </p>
+              </div>
+
+              <input
+                type="checkbox"
+                checked={isFeatured}
+                disabled={isSubmitting}
+                onChange={(event) =>
+                  setIsFeatured(
+                    event.target.checked,
+                  )
+                }
+                className="h-4 w-4 accent-violet-600"
+              />
+            </label>
+          </div>
+        )}
       </section>
 
       {/* Actions */}
@@ -1211,15 +1526,25 @@ export default function GalleryAlbumForm({
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={
+            isSubmitting ||
+            !roleResolved ||
+            isRepresentativeLocked
+          }
           className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-violet-700 to-purple-500 px-6 text-sm font-semibold text-white shadow-lg shadow-violet-500/15 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting
             ? progressMessage ||
               "Saving..."
-            : isEditing
-              ? "Update Album"
-              : "Create Album"}
+            : isRepresentativeLocked
+              ? "Album Locked"
+              : isRepresentative
+                ? isEditing
+                  ? "Save Draft Changes"
+                  : "Create Draft Album"
+                : isEditing
+                  ? "Update Album"
+                  : "Create Album"}
         </button>
       </div>
     </form>

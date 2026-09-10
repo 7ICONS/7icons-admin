@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
-
 import Link from "next/link";
-
 import { notFound } from "next/navigation";
 
 import GalleryAlbumForm, {
   type GalleryAlbumData,
   type GalleryAlbumPhotoData,
+  type GalleryAlbumStatus,
   type GalleryCategory,
 } from "@/components/gallery/GalleryAlbumForm";
-
+import GalleryAlbumReviewPanel from "@/components/gallery/GalleryAlbumReviewPanel";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Edit Gallery Album",
 };
+
+type AdminRole =
+  | "super_admin"
+  | "admin"
+  | "editor"
+  | "moderator"
+  | "representative";
 
 type EditGalleryAlbumPageProps = {
   params: Promise<{
@@ -38,6 +44,22 @@ function normalizeCategory(
   return "Other";
 }
 
+function normalizeStatus(
+  value: string,
+): GalleryAlbumStatus {
+  if (
+    value === "draft" ||
+    value === "under_review" ||
+    value === "published" ||
+    value === "rejected" ||
+    value === "archived"
+  ) {
+    return value;
+  }
+
+  return "draft";
+}
+
 export default async function EditGalleryAlbumPage({
   params,
 }: EditGalleryAlbumPageProps) {
@@ -46,6 +68,54 @@ export default async function EditGalleryAlbumPage({
   const supabase =
     await createClient();
 
+  /*
+   * Current authenticated account.
+   */
+  const {
+    data: authData,
+  } = await supabase.auth.getUser();
+
+  const currentUser =
+    authData.user;
+
+  let currentRole:
+    | AdminRole
+    | null = null;
+
+  if (currentUser) {
+    const {
+      data: roleData,
+    } = await supabase
+      .from("admin_roles")
+      .select(
+        `
+          role,
+          is_active
+        `,
+      )
+      .eq(
+        "user_id",
+        currentUser.id,
+      )
+      .maybeSingle();
+
+    if (roleData?.is_active) {
+      currentRole =
+        roleData.role as AdminRole;
+    }
+  }
+
+  const canReviewGallery =
+    currentRole ===
+      "super_admin" ||
+    currentRole ===
+      "admin" ||
+    currentRole ===
+      "editor";
+
+  /*
+   * Album + photos.
+   */
   const [
     albumResult,
     photosResult,
@@ -61,14 +131,18 @@ export default async function EditGalleryAlbumPage({
           description,
           is_published,
           is_featured,
-          sort_order
+          sort_order,
+          status,
+          review_notes
         `,
       )
       .eq("id", id)
       .maybeSingle(),
 
     supabase
-      .from("gallery_album_photos")
+      .from(
+        "gallery_album_photos",
+      )
       .select(
         `
           id,
@@ -80,9 +154,12 @@ export default async function EditGalleryAlbumPage({
         `,
       )
       .eq("album_id", id)
-      .order("sort_order", {
-        ascending: true,
-      }),
+      .order(
+        "sort_order",
+        {
+          ascending: true,
+        },
+      ),
   ]);
 
   if (albumResult.error) {
@@ -101,8 +178,14 @@ export default async function EditGalleryAlbumPage({
     notFound();
   }
 
+  const albumStatus =
+    normalizeStatus(
+      albumResult.data.status,
+    );
+
   const albumData: GalleryAlbumData = {
-    id: albumResult.data.id,
+    id:
+      albumResult.data.id,
 
     title:
       albumResult.data.title,
@@ -126,12 +209,20 @@ export default async function EditGalleryAlbumPage({
 
     sort_order:
       albumResult.data.sort_order,
+
+    status:
+      albumStatus,
+
+    review_notes:
+      albumResult.data.review_notes,
   };
 
-  const photoData: GalleryAlbumPhotoData[] =
+  const photoData:
+    GalleryAlbumPhotoData[] =
     (photosResult.data ?? []).map(
       (photo) => ({
-        id: photo.id,
+        id:
+          photo.id,
 
         album_id:
           photo.album_id,
@@ -150,8 +241,14 @@ export default async function EditGalleryAlbumPage({
       }),
     );
 
+  const showReviewPanel =
+    canReviewGallery &&
+    albumStatus ===
+      "under_review";
+
   return (
     <section>
+      {/* Header */}
       <div className="mb-8">
         <Link
           href="/gallery"
@@ -165,24 +262,50 @@ export default async function EditGalleryAlbumPage({
         </Link>
 
         <p className="mt-6 text-sm font-semibold text-violet-600">
-          Gallery Management
+          {showReviewPanel
+            ? "Gallery Review"
+            : currentRole ===
+                "representative"
+              ? "Representative Workspace"
+              : "Gallery Management"}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-          Edit Album
+          {showReviewPanel
+            ? "Review Album"
+            : "Edit Album"}
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Update this Gallery album,
-          manage its photographs,
-          visibility, category, and
-          public information.
+          {showReviewPanel
+            ? "Review the submitted Gallery album and its photographs before publishing it or returning it to the Representative for revision."
+            : currentRole ===
+                "representative"
+              ? "Update your Gallery album and manage its photographs before submitting it for staff review."
+              : "Update this Gallery album, manage its photographs, visibility, category, and public information."}
         </p>
       </div>
 
+      {/* Staff Review */}
+      {showReviewPanel && (
+        <div className="mb-6">
+          <GalleryAlbumReviewPanel
+            albumId={
+              albumData.id
+            }
+            albumTitle={
+              albumData.title
+            }
+          />
+        </div>
+      )}
+
+      {/* Album Form */}
       <GalleryAlbumForm
         album={albumData}
-        existingPhotos={photoData}
+        existingPhotos={
+          photoData
+        }
       />
     </section>
   );
