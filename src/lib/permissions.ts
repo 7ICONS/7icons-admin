@@ -112,20 +112,9 @@ const rolePermissions: Record<
     "articles.create",
     "articles.manage_all",
 
-    "members.manage",
-
     "gallery.view",
     "gallery.create",
     "gallery.manage_all",
-
-    "schedule.manage",
-
-    "representatives.manage",
-
-    "applications.view",
-    "applications.review",
-
-    "comments.view",
 
     "media.view",
     "media.manage_all",
@@ -133,10 +122,6 @@ const rolePermissions: Record<
 
   moderator: [
     "dashboard.view",
-
-    "articles.view",
-
-    "gallery.view",
 
     "users.view",
     "users.moderate",
@@ -189,11 +174,12 @@ export function hasAnyPermission(
   role: AdminRole,
   permissions: AdminPermission[],
 ) {
-  return permissions.some((permission) =>
-    hasPermission(
-      role,
-      permission,
-    ),
+  return permissions.some(
+    (permission) =>
+      hasPermission(
+        role,
+        permission,
+      ),
   );
 }
 
@@ -223,16 +209,16 @@ export function getRoleDescription(
 ) {
   switch (role) {
     case "super_admin":
-      return "Full platform access including staff, roles, settings, content, users, and moderation.";
+      return "Full platform access including staff, roles, settings, content, users, applications, and moderation.";
 
     case "admin":
-      return "General platform administration, content management, applications, users, and moderation.";
+      return "General platform administration covering content, members, schedule, representatives, applications, users, comments, and media.";
 
     case "editor":
-      return "Editorial management for articles, gallery, schedule, representatives, and application review.";
+      return "Editorial role focused on articles, gallery content, review workflows, and shared media.";
 
     case "moderator":
-      return "Community moderation focused on users and comments.";
+      return "Community moderation focused exclusively on registered users and comments.";
 
     case "representative":
       return "Regional ICONIA contributor with access to their own articles, galleries, media, and comment replies.";

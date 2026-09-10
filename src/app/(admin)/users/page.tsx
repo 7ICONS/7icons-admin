@@ -35,30 +35,46 @@ function formatDate(value: string | null) {
     return "Never";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  ).format(
+    new Date(value),
+  );
 }
 
-function formatDateTime(value: string | null) {
+function formatDateTime(
+  value: string | null,
+) {
   if (!value) {
     return "Never";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(
+    new Date(value),
+  );
 }
 
 function formatRole(role?: string) {
   if (!role) {
     return "User";
+  }
+
+  if (role === "representative") {
+    return "Representative";
   }
 
   return role
@@ -112,7 +128,25 @@ function getRoleClasses(role?: string) {
     return "border-slate-200 bg-slate-50 text-slate-600";
   }
 
-  return "border-violet-200 bg-violet-50 text-violet-700";
+  switch (role) {
+    case "super_admin":
+      return "border-purple-200 bg-purple-50 text-purple-700";
+
+    case "admin":
+      return "border-violet-200 bg-violet-50 text-violet-700";
+
+    case "editor":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "moderator":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
+    case "representative":
+      return "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700";
+
+    default:
+      return "border-violet-200 bg-violet-50 text-violet-700";
+  }
 }
 
 function canModerateUsers(role?: string) {
@@ -124,15 +158,34 @@ function canModerateUsers(role?: string) {
 }
 
 export default async function UsersPage() {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
+  /*
+   * Gunakan auth source yang sama
+   * dengan Admin Layout.
+   */
   const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser();
+    data: claimsData,
+  } =
+    await supabase.auth.getClaims();
 
+  const currentUserId =
+    claimsData?.claims?.sub;
+
+  /*
+   * User profiles tetap dibaca
+   * seperti sebelumnya.
+   *
+   * Role directory sekarang lewat
+   * secure RPC agar Admin / Moderator
+   * dapat melihat role sebenarnya
+   * tanpa membuka admin_roles secara
+   * langsung melalui RLS.
+   */
   const [
-    { data: userData, error: userError },
-    { data: roleData, error: roleError },
+    userResult,
+    roleResult,
   ] = await Promise.all([
     supabase
       .from("user_profiles")
@@ -147,69 +200,95 @@ export default async function UsersPage() {
           created_at
         `,
       )
-      .order("created_at", {
-        ascending: false,
-      }),
-
-    supabase
-      .from("admin_roles")
-      .select(
-        `
-          user_id,
-          role,
-          is_active
-        `,
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        },
       ),
+
+    supabase.rpc(
+      "get_user_role_directory",
+    ),
   ]);
 
-  if (userError) {
+  if (userResult.error) {
     console.error(
       "Unable to load users:",
-      userError,
+      userResult.error,
     );
   }
 
-  if (roleError) {
+  if (roleResult.error) {
     console.error(
-      "Unable to load admin roles:",
-      roleError,
+      "Unable to load user role directory:",
+      roleResult.error,
     );
   }
 
   const users =
-    (userData ?? []) as UserProfile[];
+    (userResult.data ??
+      []) as UserProfile[];
 
   const adminRoles =
-    (roleData ?? []) as AdminRole[];
+    (roleResult.data ??
+      []) as AdminRole[];
 
-  const activeRoleMap = new Map(
-    adminRoles
-      .filter((item) => item.is_active)
-      .map((item) => [
-        item.user_id,
-        item.role,
-      ]),
-  );
+  /*
+   * Hanya role aktif yang ditampilkan
+   * sebagai role operasional.
+   *
+   * Jika tidak memiliki active role,
+   * akun ditampilkan sebagai User.
+   */
+  const activeRoleMap =
+    new Map<string, string>(
+      adminRoles
+        .filter(
+          (item) =>
+            item.is_active,
+        )
+        .map(
+          (item) => [
+            item.user_id,
+            item.role,
+          ],
+        ),
+    );
 
-  const currentAdminRole = currentUser
-    ? activeRoleMap.get(currentUser.id)
-    : undefined;
+  const currentAdminRole =
+    currentUserId
+      ? activeRoleMap.get(
+          currentUserId,
+        )
+      : undefined;
 
   const currentAdminCanModerate =
-    canModerateUsers(currentAdminRole);
+    canModerateUsers(
+      currentAdminRole,
+    );
 
-  const totalUsers = users.length;
+  const totalUsers =
+    users.length;
 
-  const activeUsers = users.filter(
-    (user) => user.status === "active",
-  ).length;
+  const activeUsers =
+    users.filter(
+      (user) =>
+        user.status ===
+        "active",
+    ).length;
 
-  const adminUsers = users.filter((user) =>
-    activeRoleMap.has(user.id),
-  ).length;
+  const roleAccounts =
+    users.filter(
+      (user) =>
+        activeRoleMap.has(
+          user.id,
+        ),
+    ).length;
 
   const regularUsers =
-    totalUsers - adminUsers;
+    totalUsers -
+    roleAccounts;
 
   const stats = [
     {
@@ -225,10 +304,10 @@ export default async function UsersPage() {
         "Accounts in active status",
     },
     {
-      label: "Admin Users",
-      value: adminUsers,
+      label: "Role Accounts",
+      value: roleAccounts,
       description:
-        "Active admin role accounts",
+        "Staff and Representative accounts",
     },
     {
       label: "Regular Users",
@@ -251,32 +330,35 @@ export default async function UsersPage() {
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          View registered user accounts,
-          account status, admin roles, and
-          recent sign-in information.
+          View registered user
+          accounts, account status,
+          platform roles, and recent
+          sign-in information.
         </p>
       </section>
 
       {/* Summary */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <p className="text-sm font-medium text-slate-500">
-              {stat.label}
-            </p>
+        {stats.map(
+          (stat) => (
+            <div
+              key={stat.label}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <p className="text-sm font-medium text-slate-500">
+                {stat.label}
+              </p>
 
-            <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-              {stat.value}
-            </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+                {stat.value}
+              </p>
 
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              {stat.description}
-            </p>
-          </div>
-        ))}
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                {stat.description}
+              </p>
+            </div>
+          ),
+        )}
       </section>
 
       {/* Users Table */}
@@ -289,8 +371,9 @@ export default async function UsersPage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Accounts synchronized from
-                Supabase Authentication.
+                Accounts synchronized
+                from Supabase
+                Authentication.
               </p>
             </div>
 
@@ -335,137 +418,160 @@ export default async function UsersPage() {
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {users.map((user) => {
-                  const role =
-                    activeRoleMap.get(user.id);
+                {users.map(
+                  (user) => {
+                    const role =
+                      activeRoleMap.get(
+                        user.id,
+                      );
 
-                  const isAdmin =
-                    Boolean(role);
+                    const hasRole =
+                      Boolean(role);
 
-                  const isCurrentUser =
-                    currentUser?.id ===
-                    user.id;
+                    const isCurrentUser =
+                      currentUserId ===
+                      user.id;
 
-                  const initials =
-                    getInitials(
-                      user.display_name,
-                      user.email,
-                    );
+                    const initials =
+                      getInitials(
+                        user.display_name,
+                        user.email,
+                      );
 
-                  const userLabel =
-                    user.display_name ||
-                    user.email;
+                    const userLabel =
+                      user.display_name ||
+                      user.email;
 
-                  const canManage =
-                    currentAdminCanModerate &&
-                    !isAdmin &&
-                    !isCurrentUser;
+                    /*
+                     * Staff / Representative
+                     * accounts tetap protected
+                     * dari User Status Actions.
+                     *
+                     * User biasa bisa dimoderasi
+                     * oleh Super Admin, Admin,
+                     * atau Moderator.
+                     */
+                    const canManage =
+                      currentAdminCanModerate &&
+                      !hasRole &&
+                      !isCurrentUser;
 
-                  return (
-                    <tr
-                      key={user.id}
-                      className="transition hover:bg-violet-50/30"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-violet-100 bg-gradient-to-br from-violet-100 to-purple-100 text-sm font-semibold text-violet-700">
-                            {user.avatar_url ? (
-                              <div
-                                role="img"
-                                aria-label={
-                                  userLabel
-                                }
-                                className="absolute inset-0 bg-cover bg-center"
-                                style={{
-                                  backgroundImage: `url("${user.avatar_url}")`,
-                                }}
-                              />
-                            ) : (
-                              initials
-                            )}
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-semibold text-slate-900">
-                                {user.display_name ||
-                                  "Unnamed User"}
-                              </p>
-
-                              {isCurrentUser && (
-                                <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-violet-600">
-                                  You
-                                </span>
+                    return (
+                      <tr
+                        key={user.id}
+                        className="transition hover:bg-violet-50/30"
+                      >
+                        {/* User */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-violet-100 bg-gradient-to-br from-violet-100 to-purple-100 text-sm font-semibold text-violet-700">
+                              {user.avatar_url ? (
+                                <div
+                                  role="img"
+                                  aria-label={
+                                    userLabel
+                                  }
+                                  className="absolute inset-0 bg-cover bg-center"
+                                  style={{
+                                    backgroundImage: `url("${user.avatar_url}")`,
+                                  }}
+                                />
+                              ) : (
+                                initials
                               )}
                             </div>
 
-                            <p className="mt-0.5 truncate text-xs text-slate-500">
-                              {user.email}
-                            </p>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-semibold text-slate-900">
+                                  {user.display_name ||
+                                    "Unnamed User"}
+                                </p>
+
+                                {isCurrentUser && (
+                                  <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-violet-600">
+                                    You
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="mt-0.5 truncate text-xs text-slate-500">
+                                {user.email}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${getRoleClasses(
-                            role,
-                          )}`}
-                        >
-                          {formatRole(role)}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${getStatusClasses(
-                            user.status,
-                          )}`}
-                        >
-                          {user.status}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-4">
-                        <p className="text-sm text-slate-700">
-                          {formatDateTime(
-                            user.last_sign_in_at,
-                          )}
-                        </p>
-                      </td>
-
-                      <td className="px-4 py-4">
-                        <p className="text-sm text-slate-600">
-                          {formatDate(
-                            user.created_at,
-                          )}
-                        </p>
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        {canManage ? (
-                          <UserStatusActions
-                            userId={user.id}
-                            userName={
-                              userLabel
-                            }
-                            currentStatus={
-                              user.status
-                            }
-                          />
-                        ) : isAdmin ? (
-                          <span className="text-xs font-medium text-slate-400">
-                            Protected
+                        {/* Role */}
+                        <td className="px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${getRoleClasses(
+                              role,
+                            )}`}
+                          >
+                            {formatRole(
+                              role,
+                            )}
                           </span>
-                        ) : (
-                          <span className="text-xs text-slate-400">
-                            —
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${getStatusClasses(
+                              user.status,
+                            )}`}
+                          >
+                            {user.status}
                           </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+
+                        {/* Last Sign In */}
+                        <td className="px-4 py-4">
+                          <p className="text-sm text-slate-700">
+                            {formatDateTime(
+                              user.last_sign_in_at,
+                            )}
+                          </p>
+                        </td>
+
+                        {/* Joined */}
+                        <td className="px-4 py-4">
+                          <p className="text-sm text-slate-600">
+                            {formatDate(
+                              user.created_at,
+                            )}
+                          </p>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4 text-right">
+                          {canManage ? (
+                            <UserStatusActions
+                              userId={
+                                user.id
+                              }
+                              userName={
+                                userLabel
+                              }
+                              currentStatus={
+                                user.status
+                              }
+                            />
+                          ) : hasRole ? (
+                            <span className="text-xs font-medium text-slate-400">
+                              Protected
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400">
+                              —
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
               </tbody>
             </table>
           </div>
@@ -480,10 +586,12 @@ export default async function UsersPage() {
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Registered accounts will
-              appear here automatically
-              after they are synchronized
-              from Supabase Authentication.
+              Registered accounts
+              will appear here
+              automatically after
+              they are synchronized
+              from Supabase
+              Authentication.
             </p>
           </div>
         )}
