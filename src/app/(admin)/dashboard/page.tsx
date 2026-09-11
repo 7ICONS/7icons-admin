@@ -52,33 +52,12 @@ type QuickAction = {
   href: string;
 };
 
-type RoleDirectoryItem = {
-  user_id: string;
-  role: string;
-  is_active: boolean;
-};
-
 type SupabaseServerClient =
   Awaited<ReturnType<typeof createClient>>;
 
-function countActiveRepresentatives(
-  data: unknown,
+function formatStatus(
+  status: string,
 ) {
-  if (!Array.isArray(data)) {
-    return 0;
-  }
-
-  return (
-    data as RoleDirectoryItem[]
-  ).filter(
-    (item) =>
-      item.role ===
-        "representative" &&
-      item.is_active,
-  ).length;
-}
-
-function formatStatus(status: string) {
   return status
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) =>
@@ -244,7 +223,9 @@ function DashboardIcon({
     );
   }
 
-  if (type === "representative") {
+  if (
+    type === "representative"
+  ) {
     return (
       <svg
         viewBox="0 0 24 24"
@@ -320,24 +301,24 @@ function DashboardHeader({
   role: AdminRole;
 }) {
   return (
-    <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/70 p-6 shadow-sm sm:p-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+    <div className="w-full min-w-0 max-w-full rounded-3xl border border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/70 p-5 shadow-sm sm:p-8">
+      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-violet-600">
             {eyebrow}
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+          <h1 className="mt-2 break-words text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
             Welcome back,{" "}
             {displayName}
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+          <p className="mt-3 max-w-2xl break-words text-sm leading-6 text-slate-500">
             {description}
           </p>
         </div>
 
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-violet-100 bg-white px-4 py-2 text-xs font-semibold text-violet-700 shadow-sm">
+        <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-violet-100 bg-white px-4 py-2 text-xs font-semibold text-violet-700 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
 
           {getRoleLabel(role)}
@@ -353,14 +334,14 @@ function StatCard({
   item: DashboardStat;
 }) {
   return (
-    <article className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+    <article className="w-full min-w-0 max-w-full rounded-2xl border border-violet-100 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
         <DashboardIcon
           type={item.icon}
         />
       </div>
 
-      <p className="mt-5 text-sm font-semibold text-slate-600">
+      <p className="mt-5 break-words text-sm font-semibold text-slate-600">
         {item.label}
       </p>
 
@@ -368,7 +349,7 @@ function StatCard({
         {item.value}
       </p>
 
-      <p className="mt-2 text-xs leading-5 text-slate-400">
+      <p className="mt-2 break-words text-xs leading-5 text-slate-400">
         {item.description}
       </p>
     </article>
@@ -394,7 +375,7 @@ function StatsGrid({
 
   return (
     <div
-      className={`mt-6 grid grid-cols-2 gap-3 sm:gap-4 ${gridClass}`}
+      className={`mt-6 grid w-full min-w-0 max-w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 ${gridClass}`}
     >
       {stats.map(
         (item) => (
@@ -420,38 +401,38 @@ function QuickActionsPanel({
   actions: QuickAction[];
 }) {
   return (
-    <article className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
+    <article className="w-full min-w-0 max-w-full rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
         {eyebrow}
       </p>
 
-      <h2 className="mt-2 text-xl font-bold text-slate-950">
+      <h2 className="mt-2 break-words text-xl font-bold text-slate-950">
         {title}
       </h2>
 
-      <p className="mt-2 text-sm leading-6 text-slate-500">
+      <p className="mt-2 break-words text-sm leading-6 text-slate-500">
         {description}
       </p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid min-w-0 gap-3 sm:grid-cols-2">
         {actions.map(
           (action) => (
             <Link
               key={action.href}
               href={action.href}
-              className="group flex items-center justify-between rounded-2xl border border-violet-100 bg-violet-50/30 px-4 py-4 transition hover:border-violet-200 hover:bg-violet-50"
+              className="group flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-violet-100 bg-violet-50/30 px-4 py-4 transition hover:border-violet-200 hover:bg-violet-50"
             >
-              <div>
-                <p className="text-sm font-bold text-slate-800">
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm font-bold text-slate-800">
                   {action.label}
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-slate-500">
+                <p className="mt-1 break-words text-xs leading-5 text-slate-500">
                   {action.description}
                 </p>
               </div>
 
-              <span className="ml-4 text-lg text-violet-500 transition group-hover:translate-x-1">
+              <span className="shrink-0 text-lg text-violet-500 transition group-hover:translate-x-1">
                 →
               </span>
             </Link>
@@ -474,17 +455,17 @@ function RecentContent({
   description?: string;
 }) {
   return (
-    <article className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
-      <div>
+    <article className="w-full min-w-0 max-w-full rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
+      <div className="min-w-0">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
           {eyebrow}
         </p>
 
-        <h2 className="mt-2 text-xl font-bold text-slate-950">
+        <h2 className="mt-2 break-words text-xl font-bold text-slate-950">
           {title}
         </h2>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 break-words text-sm text-slate-500">
           {description}
         </p>
       </div>
@@ -496,19 +477,20 @@ function RecentContent({
           </p>
 
           <p className="mt-2 text-xs leading-5 text-slate-500">
-            New activity will appear here.
+            New activity will
+            appear here.
           </p>
         </div>
       ) : (
-        <div className="mt-5 divide-y divide-violet-50">
+        <div className="mt-5 min-w-0 divide-y divide-violet-50">
           {items.map(
             (item) => (
               <div
                 key={`${item.type}-${item.id}`}
-                className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                className="min-w-0 py-4 first:pt-0 last:pb-0"
               >
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <span className="text-xs font-semibold text-violet-600">
                       {item.type}
                     </span>
@@ -524,7 +506,7 @@ function RecentContent({
                     </span>
                   </div>
 
-                  <p className="mt-2 truncate text-sm font-semibold text-slate-800">
+                  <p className="mt-2 max-w-full break-words [overflow-wrap:anywhere] text-sm font-semibold leading-5 text-slate-800">
                     {item.title}
                   </p>
 
@@ -556,22 +538,22 @@ function ReviewQueue({
     galleryCount;
 
   return (
-    <article className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
+    <article className="w-full min-w-0 max-w-full rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
         Staff Review
       </p>
 
-      <h2 className="mt-2 text-xl font-bold text-slate-950">
+      <h2 className="mt-2 break-words text-xl font-bold text-slate-950">
         Content Awaiting Review
       </h2>
 
-      <p className="mt-1 text-sm leading-6 text-slate-500">
+      <p className="mt-1 break-words text-sm leading-6 text-slate-500">
         Representative submissions waiting for a staff decision.
       </p>
 
       <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/30 p-5">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-600">
               Total Waiting
             </p>
@@ -581,7 +563,7 @@ function ReviewQueue({
             </p>
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm">
             <DashboardIcon
               type="review"
             />
@@ -589,10 +571,10 @@ function ReviewQueue({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
         <Link
           href="/articles"
-          className="rounded-2xl border border-violet-100 p-4 transition hover:bg-violet-50/40"
+          className="min-w-0 rounded-2xl border border-violet-100 p-4 transition hover:bg-violet-50/40"
         >
           <p className="text-xs font-semibold text-slate-500">
             Articles
@@ -609,7 +591,7 @@ function ReviewQueue({
 
         <Link
           href="/gallery"
-          className="rounded-2xl border border-violet-100 p-4 transition hover:bg-violet-50/40"
+          className="min-w-0 rounded-2xl border border-violet-100 p-4 transition hover:bg-violet-50/40"
         >
           <p className="text-xs font-semibold text-slate-500">
             Gallery
@@ -634,7 +616,7 @@ function ModerationActivityList({
   comments: ModerationActivity[];
 }) {
   return (
-    <article className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
+    <article className="w-full min-w-0 max-w-full rounded-3xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
         Community
       </p>
@@ -643,7 +625,7 @@ function ModerationActivityList({
         Recent Comments
       </h2>
 
-      <p className="mt-1 text-sm leading-6 text-slate-500">
+      <p className="mt-1 break-words text-sm leading-6 text-slate-500">
         Latest community comments visible to the moderation team.
       </p>
 
@@ -654,12 +636,12 @@ function ModerationActivityList({
           </p>
         </div>
       ) : (
-        <div className="mt-5 divide-y divide-violet-50">
+        <div className="mt-5 min-w-0 divide-y divide-violet-50">
           {comments.map(
             (comment) => (
               <div
                 key={comment.id}
-                className="py-4 first:pt-0 last:pb-0"
+                className="min-w-0 py-4 first:pt-0 last:pb-0"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span
@@ -679,7 +661,7 @@ function ModerationActivityList({
                   </span>
                 </div>
 
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-700">
+                <p className="mt-2 break-words [overflow-wrap:anywhere] text-sm leading-6 text-slate-700">
                   {comment.body}
                 </p>
               </div>
@@ -695,65 +677,75 @@ async function loadRecentContent(
   supabase: SupabaseServerClient,
   userId?: string,
 ) {
-  const articleQuery = userId
-    ? supabase
-        .from("articles")
-        .select(
-          "id, title, status, updated_at",
-        )
-        .eq(
-          "created_by",
-          userId,
-        )
-        .order(
-          "updated_at",
-          {
-            ascending: false,
-          },
-        )
-        .limit(4)
-    : supabase
-        .from("articles")
-        .select(
-          "id, title, status, updated_at",
-        )
-        .order(
-          "updated_at",
-          {
-            ascending: false,
-          },
-        )
-        .limit(4);
+  const articleQuery =
+    userId
+      ? supabase
+          .from("articles")
+          .select(
+            "id, title, status, updated_at",
+          )
+          .eq(
+            "created_by",
+            userId,
+          )
+          .order(
+            "updated_at",
+            {
+              ascending:
+                false,
+            },
+          )
+          .limit(4)
+      : supabase
+          .from("articles")
+          .select(
+            "id, title, status, updated_at",
+          )
+          .order(
+            "updated_at",
+            {
+              ascending:
+                false,
+            },
+          )
+          .limit(4);
 
-  const galleryQuery = userId
-    ? supabase
-        .from("gallery_albums")
-        .select(
-          "id, title, status, updated_at",
-        )
-        .eq(
-          "created_by",
-          userId,
-        )
-        .order(
-          "updated_at",
-          {
-            ascending: false,
-          },
-        )
-        .limit(4)
-    : supabase
-        .from("gallery_albums")
-        .select(
-          "id, title, status, updated_at",
-        )
-        .order(
-          "updated_at",
-          {
-            ascending: false,
-          },
-        )
-        .limit(4);
+  const galleryQuery =
+    userId
+      ? supabase
+          .from(
+            "gallery_albums",
+          )
+          .select(
+            "id, title, status, updated_at",
+          )
+          .eq(
+            "created_by",
+            userId,
+          )
+          .order(
+            "updated_at",
+            {
+              ascending:
+                false,
+            },
+          )
+          .limit(4)
+      : supabase
+          .from(
+            "gallery_albums",
+          )
+          .select(
+            "id, title, status, updated_at",
+          )
+          .order(
+            "updated_at",
+            {
+              ascending:
+                false,
+            },
+          )
+          .limit(4);
 
   const [
     articlesResult,
@@ -832,7 +824,7 @@ async function SuperAdminDashboard({
     galleryResult,
     galleryReviewResult,
     usersResult,
-    roleDirectoryResult,
+    representativesResult,
     pendingCommentsResult,
     recentContent,
   ] = await Promise.all([
@@ -866,14 +858,18 @@ async function SuperAdminDashboard({
       ),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
       }),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -884,15 +880,30 @@ async function SuperAdminDashboard({
       ),
 
     supabase
-      .from("user_profiles")
+      .from(
+        "user_profiles",
+      )
       .select("id", {
         count: "exact",
         head: true,
       }),
 
-    supabase.rpc(
-      "get_user_role_directory",
-    ),
+    supabase
+      .from(
+        "admin_roles",
+      )
+      .select("user_id", {
+        count: "exact",
+        head: true,
+      })
+      .eq(
+        "role",
+        "representative",
+      )
+      .eq(
+        "is_active",
+        true,
+      ),
 
     supabase
       .from("comments")
@@ -918,107 +929,115 @@ async function SuperAdminDashboard({
     galleryReviewResult.count ??
     0;
 
-  const stats: DashboardStat[] = [
-    {
-      label: "Total Articles",
-      value:
-        articlesResult.count ??
-        0,
-      description: `${
-        publishedArticlesResult.count ??
-        0
-      } published`,
-      icon: "article",
-    },
-    {
-      label: "Gallery Albums",
-      value:
-        galleryResult.count ??
-        0,
-      description:
-        "Across the platform",
-      icon: "gallery",
-    },
-    {
-      label: "Content In Review",
-      value:
-        articleReviewCount +
-        galleryReviewCount,
-      description:
-        "Waiting for staff review",
-      icon: "review",
-    },
-    {
-      label: "Registered Users",
-      value:
-        usersResult.count ??
-        0,
-      description:
-        "Platform user profiles",
-      icon: "users",
-    },
-    {
-      label: "Representatives",
-      value:
-        countActiveRepresentatives(
-          roleDirectoryResult.data,
-        ),
-      description:
-        "Active accounts",
-      icon: "representative",
-    },
-    {
-      label: "Pending Comments",
-      value:
-        pendingCommentsResult.count ??
-        0,
-      description:
-        "Waiting for moderation",
-      icon: "comment",
-    },
-  ];
+  const stats: DashboardStat[] =
+    [
+      {
+        label:
+          "Total Articles",
+        value:
+          articlesResult.count ??
+          0,
+        description: `${
+          publishedArticlesResult.count ??
+          0
+        } published`,
+        icon: "article",
+      },
+      {
+        label:
+          "Gallery Albums",
+        value:
+          galleryResult.count ??
+          0,
+        description:
+          "Across the platform",
+        icon: "gallery",
+      },
+      {
+        label:
+          "Content In Review",
+        value:
+          articleReviewCount +
+          galleryReviewCount,
+        description:
+          "Waiting for staff review",
+        icon: "review",
+      },
+      {
+        label:
+          "Registered Users",
+        value:
+          usersResult.count ??
+          0,
+        description:
+          "Platform user profiles",
+        icon: "users",
+      },
+      {
+        label:
+          "Representatives",
+        value:
+          representativesResult.count ??
+          0,
+        description:
+          "Active accounts",
+        icon:
+          "representative",
+      },
+      {
+        label:
+          "Pending Comments",
+        value:
+          pendingCommentsResult.count ??
+          0,
+        description:
+          "Waiting for moderation",
+        icon: "comment",
+      },
+    ];
 
-  const actions: QuickAction[] = [
-    {
-      label: "Articles",
-      description:
-        "Manage and review Articles.",
-      href: "/articles",
-    },
-    {
-      label: "Gallery",
-      description:
-        "Manage Gallery albums.",
-      href: "/gallery",
-    },
-    {
-      label: "Comments",
-      description:
-        "Moderate conversations.",
-      href: "/comments",
-    },
-    {
-      label: "Users",
-      description:
-        "Manage platform users.",
-      href: "/users",
-    },
-    {
-      label: "Media",
-      description:
-        "Manage media assets.",
-      href: "/media",
-    },
-    {
-      label: "Schedule",
-      description:
-        "Manage upcoming activities.",
-      href: "/schedule",
-    },
-  ];
+  const actions: QuickAction[] =
+    [
+      {
+        label: "Articles",
+        description:
+          "Manage and review Articles.",
+        href: "/articles",
+      },
+      {
+        label: "Gallery",
+        description:
+          "Manage Gallery albums.",
+        href: "/gallery",
+      },
+      {
+        label: "Comments",
+        description:
+          "Moderate conversations.",
+        href: "/comments",
+      },
+      {
+        label: "Users",
+        description:
+          "Manage platform users.",
+        href: "/users",
+      },
+      {
+        label: "Media",
+        description:
+          "Manage media assets.",
+        href: "/media",
+      },
+      {
+        label: "Schedule",
+        description:
+          "Manage upcoming activities.",
+        href: "/schedule",
+      },
+    ];
 
   return (
-    <section>
+    <section className="w-full min-w-0 max-w-full">
       <DashboardHeader
         eyebrow="Platform Overview"
         displayName={
@@ -1032,7 +1051,7 @@ async function SuperAdminDashboard({
         stats={stats}
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+      <div className="mt-6 grid w-full min-w-0 max-w-full gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <ReviewQueue
           articleCount={
             articleReviewCount
@@ -1049,11 +1068,12 @@ async function SuperAdminDashboard({
         />
       </div>
 
-      <div className="mt-6">
+      {/* CALENDAR */}
+      <div className="mt-6 w-full min-w-0 max-w-full">
         <UpcomingSchedule />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 w-full min-w-0 max-w-full">
         <QuickActionsPanel
           eyebrow="Administration"
           description="Access the main management areas of the 7ICONS platform."
@@ -1082,7 +1102,7 @@ async function AdminDashboard({
     galleryResult,
     galleryReviewResult,
     usersResult,
-    roleDirectoryResult,
+    representativesResult,
     pendingCommentsResult,
     recentContent,
   ] = await Promise.all([
@@ -1105,14 +1125,18 @@ async function AdminDashboard({
       ),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
       }),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1123,15 +1147,30 @@ async function AdminDashboard({
       ),
 
     supabase
-      .from("user_profiles")
+      .from(
+        "user_profiles",
+      )
       .select("id", {
         count: "exact",
         head: true,
       }),
 
-    supabase.rpc(
-      "get_user_role_directory",
-    ),
+    supabase
+      .from(
+        "admin_roles",
+      )
+      .select("user_id", {
+        count: "exact",
+        head: true,
+      })
+      .eq(
+        "role",
+        "representative",
+      )
+      .eq(
+        "is_active",
+        true,
+      ),
 
     supabase
       .from("comments")
@@ -1157,93 +1196,101 @@ async function AdminDashboard({
     galleryReviewResult.count ??
     0;
 
-  const stats: DashboardStat[] = [
-    {
-      label: "Total Articles",
-      value:
-        articlesResult.count ??
-        0,
-      description:
-        "Platform Articles",
-      icon: "article",
-    },
-    {
-      label: "Gallery Albums",
-      value:
-        galleryResult.count ??
-        0,
-      description:
-        "Platform Gallery",
-      icon: "gallery",
-    },
-    {
-      label: "Content In Review",
-      value:
-        articleReviewCount +
-        galleryReviewCount,
-      description:
-        "Waiting for review",
-      icon: "review",
-    },
-    {
-      label: "Registered Users",
-      value:
-        usersResult.count ??
-        0,
-      description:
-        "Platform users",
-      icon: "users",
-    },
-    {
-      label: "Representatives",
-      value:
-        countActiveRepresentatives(
-          roleDirectoryResult.data,
-        ),
-      description:
-        "Active accounts",
-      icon: "representative",
-    },
-    {
-      label: "Pending Comments",
-      value:
-        pendingCommentsResult.count ??
-        0,
-      description:
-        "Waiting for moderation",
-      icon: "comment",
-    },
-  ];
+  const stats: DashboardStat[] =
+    [
+      {
+        label:
+          "Total Articles",
+        value:
+          articlesResult.count ??
+          0,
+        description:
+          "Platform Articles",
+        icon: "article",
+      },
+      {
+        label:
+          "Gallery Albums",
+        value:
+          galleryResult.count ??
+          0,
+        description:
+          "Platform Gallery",
+        icon: "gallery",
+      },
+      {
+        label:
+          "Content In Review",
+        value:
+          articleReviewCount +
+          galleryReviewCount,
+        description:
+          "Waiting for review",
+        icon: "review",
+      },
+      {
+        label:
+          "Registered Users",
+        value:
+          usersResult.count ??
+          0,
+        description:
+          "Platform users",
+        icon: "users",
+      },
+      {
+        label:
+          "Representatives",
+        value:
+          representativesResult.count ??
+          0,
+        description:
+          "Active accounts",
+        icon:
+          "representative",
+      },
+      {
+        label:
+          "Pending Comments",
+        value:
+          pendingCommentsResult.count ??
+          0,
+        description:
+          "Waiting for moderation",
+        icon: "comment",
+      },
+    ];
 
-  const actions: QuickAction[] = [
-    {
-      label: "Articles",
-      description:
-        "Manage and review Articles.",
-      href: "/articles",
-    },
-    {
-      label: "Gallery",
-      description:
-        "Manage Gallery albums.",
-      href: "/gallery",
-    },
-    {
-      label: "Comments",
-      description:
-        "Manage community comments.",
-      href: "/comments",
-    },
-    {
-      label: "Users",
-      description:
-        "Manage registered users.",
-      href: "/users",
-    },
-  ];
+  const actions: QuickAction[] =
+    [
+      {
+        label: "Articles",
+        description:
+          "Manage and review Articles.",
+        href: "/articles",
+      },
+      {
+        label: "Gallery",
+        description:
+          "Manage Gallery albums.",
+        href: "/gallery",
+      },
+      {
+        label: "Comments",
+        description:
+          "Manage community comments.",
+        href: "/comments",
+      },
+      {
+        label: "Users",
+        description:
+          "Manage registered users.",
+        href: "/users",
+      },
+    ];
 
   return (
-    <section>
+    <section className="w-full min-w-0 max-w-full">
       <DashboardHeader
         eyebrow="Operations Overview"
         displayName={
@@ -1257,7 +1304,7 @@ async function AdminDashboard({
         stats={stats}
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+      <div className="mt-6 grid w-full min-w-0 max-w-full gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <ReviewQueue
           articleCount={
             articleReviewCount
@@ -1274,11 +1321,12 @@ async function AdminDashboard({
         />
       </div>
 
-      <div className="mt-6">
+      {/* CALENDAR */}
+      <div className="mt-6 w-full min-w-0 max-w-full">
         <UpcomingSchedule />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 w-full min-w-0 max-w-full">
         <QuickActionsPanel
           eyebrow="Management"
           description="Jump directly to the tools used for daily platform management."
@@ -1328,14 +1376,18 @@ async function EditorDashboard({
       ),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
       }),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1346,7 +1398,9 @@ async function EditorDashboard({
       ),
 
     supabase
-      .from("media_assets")
+      .from(
+        "media_assets",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1365,75 +1419,81 @@ async function EditorDashboard({
     galleryReviewResult.count ??
     0;
 
-  const stats: DashboardStat[] = [
-    {
-      label: "Articles",
-      value:
-        articlesResult.count ??
-        0,
-      description:
-        "Editorial content",
-      icon: "article",
-    },
-    {
-      label: "Article Review",
-      value:
-        articleReviewCount,
-      description:
-        "Waiting for review",
-      icon: "review",
-    },
-    {
-      label: "Gallery Albums",
-      value:
-        galleryResult.count ??
-        0,
-      description:
-        "Gallery content",
-      icon: "gallery",
-    },
-    {
-      label: "Gallery Review",
-      value:
-        galleryReviewCount,
-      description:
-        "Waiting for review",
-      icon: "review",
-    },
-    {
-      label: "Media Assets",
-      value:
-        mediaResult.count ??
-        0,
-      description:
-        "Shared media library",
-      icon: "media",
-    },
-  ];
+  const stats: DashboardStat[] =
+    [
+      {
+        label: "Articles",
+        value:
+          articlesResult.count ??
+          0,
+        description:
+          "Editorial content",
+        icon: "article",
+      },
+      {
+        label:
+          "Article Review",
+        value:
+          articleReviewCount,
+        description:
+          "Waiting for review",
+        icon: "review",
+      },
+      {
+        label:
+          "Gallery Albums",
+        value:
+          galleryResult.count ??
+          0,
+        description:
+          "Gallery content",
+        icon: "gallery",
+      },
+      {
+        label:
+          "Gallery Review",
+        value:
+          galleryReviewCount,
+        description:
+          "Waiting for review",
+        icon: "review",
+      },
+      {
+        label:
+          "Media Assets",
+        value:
+          mediaResult.count ??
+          0,
+        description:
+          "Shared media library",
+        icon: "media",
+      },
+    ];
 
-  const actions: QuickAction[] = [
-    {
-      label: "Articles",
-      description:
-        "Create, edit, and review Articles.",
-      href: "/articles",
-    },
-    {
-      label: "Gallery",
-      description:
-        "Manage Gallery albums.",
-      href: "/gallery",
-    },
-    {
-      label: "Media",
-      description:
-        "Manage shared media assets.",
-      href: "/media",
-    },
-  ];
+  const actions: QuickAction[] =
+    [
+      {
+        label: "Articles",
+        description:
+          "Create, edit, and review Articles.",
+        href: "/articles",
+      },
+      {
+        label: "Gallery",
+        description:
+          "Manage Gallery albums.",
+        href: "/gallery",
+      },
+      {
+        label: "Media",
+        description:
+          "Manage shared media assets.",
+        href: "/media",
+      },
+    ];
 
   return (
-    <section>
+    <section className="w-full min-w-0 max-w-full">
       <DashboardHeader
         eyebrow="Editorial Workspace"
         displayName={
@@ -1448,7 +1508,7 @@ async function EditorDashboard({
         columns="five"
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+      <div className="mt-6 grid w-full min-w-0 max-w-full gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <ReviewQueue
           articleCount={
             articleReviewCount
@@ -1468,7 +1528,7 @@ async function EditorDashboard({
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 w-full min-w-0 max-w-full">
         <QuickActionsPanel
           eyebrow="Editorial"
           description="Open the content tools available to your Editor account."
@@ -1500,7 +1560,9 @@ async function ModeratorDashboard({
     recentResult,
   ] = await Promise.all([
     supabase
-      .from("user_profiles")
+      .from(
+        "user_profiles",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1558,59 +1620,62 @@ async function ModeratorDashboard({
       .order(
         "created_at",
         {
-          ascending: false,
+          ascending:
+            false,
         },
       )
       .limit(6),
   ]);
 
-  const stats: DashboardStat[] = [
-    {
-      label: "Registered Users",
-      value:
-        usersResult.count ??
-        0,
-      description:
-        "Platform user profiles",
-      icon: "users",
-    },
-    {
-      label: "Pending",
-      value:
-        pendingResult.count ??
-        0,
-      description:
-        "Needs moderation",
-      icon: "comment",
-    },
-    {
-      label: "Approved",
-      value:
-        approvedResult.count ??
-        0,
-      description:
-        "Visible comments",
-      icon: "comment",
-    },
-    {
-      label: "Hidden",
-      value:
-        hiddenResult.count ??
-        0,
-      description:
-        "Hidden comments",
-      icon: "comment",
-    },
-    {
-      label: "Spam",
-      value:
-        spamResult.count ??
-        0,
-      description:
-        "Marked as spam",
-      icon: "comment",
-    },
-  ];
+  const stats: DashboardStat[] =
+    [
+      {
+        label:
+          "Registered Users",
+        value:
+          usersResult.count ??
+          0,
+        description:
+          "Platform user profiles",
+        icon: "users",
+      },
+      {
+        label: "Pending",
+        value:
+          pendingResult.count ??
+          0,
+        description:
+          "Needs moderation",
+        icon: "comment",
+      },
+      {
+        label: "Approved",
+        value:
+          approvedResult.count ??
+          0,
+        description:
+          "Visible comments",
+        icon: "comment",
+      },
+      {
+        label: "Hidden",
+        value:
+          hiddenResult.count ??
+          0,
+        description:
+          "Hidden comments",
+        icon: "comment",
+      },
+      {
+        label: "Spam",
+        value:
+          spamResult.count ??
+          0,
+        description:
+          "Marked as spam",
+        icon: "comment",
+      },
+    ];
 
   const comments: ModerationActivity[] =
     (
@@ -1627,23 +1692,24 @@ async function ModeratorDashboard({
       }),
     );
 
-  const actions: QuickAction[] = [
-    {
-      label: "Comments",
-      description:
-        "Review and moderate community comments.",
-      href: "/comments",
-    },
-    {
-      label: "Users",
-      description:
-        "View and manage registered users.",
-      href: "/users",
-    },
-  ];
+  const actions: QuickAction[] =
+    [
+      {
+        label: "Comments",
+        description:
+          "Review and moderate community comments.",
+        href: "/comments",
+      },
+      {
+        label: "Users",
+        description:
+          "View and manage registered users.",
+        href: "/users",
+      },
+    ];
 
   return (
-    <section>
+    <section className="w-full min-w-0 max-w-full">
       <DashboardHeader
         eyebrow="Moderation Center"
         displayName={
@@ -1658,9 +1724,11 @@ async function ModeratorDashboard({
         columns="five"
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="mt-6 grid w-full min-w-0 max-w-full gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <ModerationActivityList
-          comments={comments}
+          comments={
+            comments
+          }
         />
 
         <QuickActionsPanel
@@ -1739,7 +1807,9 @@ async function RepresentativeDashboard({
       ),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1750,7 +1820,9 @@ async function RepresentativeDashboard({
       ),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1765,7 +1837,9 @@ async function RepresentativeDashboard({
       ),
 
     supabase
-      .from("gallery_albums")
+      .from(
+        "gallery_albums",
+      )
       .select("id", {
         count: "exact",
         head: true,
@@ -1800,78 +1874,88 @@ async function RepresentativeDashboard({
     galleryReviewResult.count ??
     0;
 
-  const stats: DashboardStat[] = [
-    {
-      label: "My Articles",
-      value:
-        articlesResult.count ??
-        0,
-      description: `${
-        publishedArticlesResult.count ??
-        0
-      } published`,
-      icon: "article",
-    },
-    {
-      label: "My Gallery",
-      value:
-        galleryResult.count ??
-        0,
-      description: `${
-        publishedGalleryResult.count ??
-        0
-      } published`,
-      icon: "gallery",
-    },
-    {
-      label: "In Review",
-      value:
-        articleReviewCount +
-        galleryReviewCount,
-      description:
-        "Waiting for staff review",
-      icon: "review",
-    },
-    {
-      label: "Comments",
-      value:
-        commentsResult.count ??
-        0,
-      description:
-        "On your content",
-      icon: "comment",
-    },
-  ];
+  const stats: DashboardStat[] =
+    [
+      {
+        label:
+          "My Articles",
+        value:
+          articlesResult.count ??
+          0,
+        description: `${
+          publishedArticlesResult.count ??
+          0
+        } published`,
+        icon: "article",
+      },
+      {
+        label:
+          "My Gallery",
+        value:
+          galleryResult.count ??
+          0,
+        description: `${
+          publishedGalleryResult.count ??
+          0
+        } published`,
+        icon: "gallery",
+      },
+      {
+        label:
+          "In Review",
+        value:
+          articleReviewCount +
+          galleryReviewCount,
+        description:
+          "Waiting for staff review",
+        icon: "review",
+      },
+      {
+        label: "Comments",
+        value:
+          commentsResult.count ??
+          0,
+        description:
+          "On your content",
+        icon: "comment",
+      },
+    ];
 
-  const actions: QuickAction[] = [
-    {
-      label: "Create Article",
-      description:
-        "Write a new community story.",
-      href: "/articles/new",
-    },
-    {
-      label: "Create Gallery",
-      description:
-        "Share ICONIA community moments.",
-      href: "/gallery/new",
-    },
-    {
-      label: "Comments",
-      description:
-        "Read and reply to comments on your content.",
-      href: "/comments",
-    },
-    {
-      label: "Media Library",
-      description:
-        "Manage your uploaded media.",
-      href: "/media",
-    },
-  ];
+  const actions: QuickAction[] =
+    [
+      {
+        label:
+          "Create Article",
+        description:
+          "Write a new community story.",
+        href:
+          "/articles/new",
+      },
+      {
+        label:
+          "Create Gallery",
+        description:
+          "Share ICONIA community moments.",
+        href:
+          "/gallery/new",
+      },
+      {
+        label: "Comments",
+        description:
+          "Read and reply to comments on your content.",
+        href: "/comments",
+      },
+      {
+        label:
+          "Media Library",
+        description:
+          "Manage your uploaded media.",
+        href: "/media",
+      },
+    ];
 
   return (
-    <section>
+    <section className="w-full min-w-0 max-w-full">
       <DashboardHeader
         eyebrow="Representative Workspace"
         displayName={
@@ -1886,7 +1970,7 @@ async function RepresentativeDashboard({
         columns="four"
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="mt-6 grid w-full min-w-0 max-w-full gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <RecentContent
           items={
             recentContent
@@ -1902,22 +1986,23 @@ async function RepresentativeDashboard({
         />
       </div>
 
-      <div className="mt-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-violet-600 to-purple-500 p-6 text-white shadow-lg shadow-violet-500/10 sm:p-7">
+      <div className="mt-6 w-full min-w-0 max-w-full rounded-3xl border border-violet-100 bg-gradient-to-r from-violet-600 to-purple-500 p-6 text-white shadow-lg shadow-violet-500/10 sm:p-7">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-100">
           Representative Workflow
         </p>
 
-        <h2 className="mt-2 text-xl font-bold">
-          Create. Submit. Connect.
+        <h2 className="mt-2 break-words text-xl font-bold">
+          Create. Submit.
+          Connect.
         </h2>
 
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-violet-100">
-          Create an Article or Gallery
-          album, submit it for staff
-          review, and once published,
-          stay connected with ICONIA
-          through comments on your
-          content.
+        <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-violet-100">
+          Create an Article or
+          Gallery album, submit it
+          for staff review, and once
+          published, stay connected
+          with ICONIA through
+          comments on your content.
         </p>
       </div>
     </section>
@@ -1963,7 +2048,9 @@ export default async function DashboardPage() {
       .maybeSingle(),
 
     supabase
-      .from("user_profiles")
+      .from(
+        "user_profiles",
+      )
       .select(
         `
           email,

@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
 
 import DeleteArticleButton from "@/components/articles/DeleteArticleButton";
 import SubmitArticleForReviewButton from "@/components/articles/SubmitArticleForReviewButton";
@@ -75,6 +78,21 @@ function normalizeStatus(
   return status
     .trim()
     .toLowerCase();
+}
+
+function formatDate(
+  dateString: string,
+) {
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  ).format(
+    new Date(dateString),
+  );
 }
 
 function StatusBadge({
@@ -196,6 +214,89 @@ function RepresentativeStatusHelp({
   return null;
 }
 
+function ArticleCover({
+  article,
+  mobile = false,
+}: {
+  article: Article;
+  mobile?: boolean;
+}) {
+  const sizeClasses =
+    mobile
+      ? "h-16 w-24"
+      : "h-14 w-24";
+
+  if (article.cover_image) {
+    return (
+      <div
+        role="img"
+        aria-label={`${article.title} cover`}
+        className={`${sizeClasses} shrink-0 rounded-xl border border-violet-100 bg-slate-100 bg-cover bg-center shadow-sm`}
+        style={{
+          backgroundImage: `url("${article.cover_image}")`,
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex ${sizeClasses} shrink-0 items-center justify-center rounded-xl border border-dashed border-violet-200 bg-violet-50/50 text-violet-400`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        className="h-6 w-6"
+      >
+        <rect
+          x="3"
+          y="4"
+          width="18"
+          height="16"
+          rx="2"
+        />
+
+        <circle
+          cx="9"
+          cy="9"
+          r="2"
+        />
+
+        <path d="m4 18 5-5 3 3 2-2 6 6" />
+      </svg>
+    </div>
+  );
+}
+
+function EditButton({
+  articleId,
+}: {
+  articleId: string;
+}) {
+  return (
+    <Link
+      href={`/articles/${articleId}/edit`}
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-violet-100 px-3 text-xs font-semibold text-violet-700 transition hover:border-violet-200 hover:bg-violet-50"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        className="h-4 w-4"
+      >
+        <path d="M12 20h9" />
+
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+      </svg>
+
+      Edit
+    </Link>
+  );
+}
+
 export default function ArticlesTable({
   articles,
   isRepresentative = false,
@@ -289,7 +390,7 @@ export default function ArticlesTable({
   ) {
     return (
       <div className="mt-6 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm">
-        <div className="flex min-h-[360px] flex-col items-center justify-center px-6 py-12 text-center">
+        <div className="flex min-h-[360px] flex-col items-center justify-center px-5 py-12 text-center sm:px-6">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
             <svg
               viewBox="0 0 24 24"
@@ -492,7 +593,7 @@ export default function ArticlesTable({
       <section className="overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm">
         {filteredArticles.length ===
         0 ? (
-          <div className="flex min-h-[300px] flex-col items-center justify-center px-6 py-10 text-center">
+          <div className="flex min-h-[300px] flex-col items-center justify-center px-5 py-10 text-center sm:px-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
               <svg
                 viewBox="0 0 24 24"
@@ -532,261 +633,488 @@ export default function ArticlesTable({
             </button>
           </div>
         ) : (
-          <div className="w-full">
-            <table className="w-full table-fixed">
-              <thead className="border-b border-violet-100 bg-violet-50/50">
-                <tr>
-                  <th className="w-[34%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Article
-                  </th>
+          <>
+            {/* Mobile / Tablet Cards */}
+            <div className="divide-y divide-violet-50 xl:hidden">
+              {filteredArticles.map(
+                (article) => {
+                  const normalizedStatus =
+                    normalizeStatus(
+                      article.status,
+                    );
 
-                  <th className="w-[11%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Category
-                  </th>
+                  const representativeCanEdit =
+                    isRepresentative &&
+                    [
+                      "draft",
+                      "rejected",
+                    ].includes(
+                      normalizedStatus,
+                    );
 
-                  <th className="w-[13%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Status
-                  </th>
+                  const representativeCanDelete =
+                    representativeCanEdit;
 
-                  <th className="w-[8%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Featured
-                  </th>
+                  const representativeCanSubmit =
+                    isRepresentative &&
+                    normalizedStatus ===
+                      "draft";
 
-                  <th className="w-[12%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Created
-                  </th>
+                  const representativeIsLocked =
+                    isRepresentative &&
+                    [
+                      "under_review",
+                      "published",
+                      "archived",
+                    ].includes(
+                      normalizedStatus,
+                    );
 
-                  <th className="w-[22%] px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+                  const showStaffFeedback =
+                    isRepresentative &&
+                    normalizedStatus ===
+                      "rejected" &&
+                    Boolean(
+                      article.review_notes?.trim(),
+                    );
 
-              <tbody className="divide-y divide-violet-50">
-                {filteredArticles.map(
-                  (article) => {
-                    const normalizedStatus =
-                      normalizeStatus(
-                        article.status,
-                      );
-
-                    const representativeCanEdit =
-                      isRepresentative &&
-                      [
-                        "draft",
-                        "rejected",
-                      ].includes(
-                        normalizedStatus,
-                      );
-
-                    const representativeCanDelete =
-                      representativeCanEdit;
-
-                    const representativeCanSubmit =
-                      isRepresentative &&
-                      normalizedStatus ===
-                        "draft";
-
-                    const representativeIsLocked =
-                      isRepresentative &&
-                      [
-                        "under_review",
-                        "published",
-                        "archived",
-                      ].includes(
-                        normalizedStatus,
-                      );
-
-                    const showStaffFeedback =
-                      isRepresentative &&
-                      normalizedStatus ===
-                        "rejected" &&
-                      Boolean(
-                        article.review_notes?.trim(),
-                      );
-
-                    return (
-                      <tr
-                        key={
-                          article.id
-                        }
-                        className="transition hover:bg-violet-50/30"
-                      >
-                        {/* Article */}
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex min-w-0 items-start gap-3">
-                            {article.cover_image ? (
-                              <div
-                                role="img"
-                                aria-label={`${article.title} cover`}
-                                className="h-14 w-24 shrink-0 rounded-xl border border-violet-100 bg-slate-100 bg-cover bg-center shadow-sm"
-                                style={{
-                                  backgroundImage: `url("${article.cover_image}")`,
-                                }}
-                              />
-                            ) : (
-                              <div className="flex h-14 w-24 shrink-0 items-center justify-center rounded-xl border border-dashed border-violet-200 bg-violet-50/50 text-violet-400">
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  className="h-6 w-6"
-                                >
-                                  <rect
-                                    x="3"
-                                    y="4"
-                                    width="18"
-                                    height="16"
-                                    rx="2"
-                                  />
-
-                                  <circle
-                                    cx="9"
-                                    cy="9"
-                                    r="2"
-                                  />
-
-                                  <path d="m4 18 5-5 3 3 2-2 6 6" />
-                                </svg>
-                              </div>
-                            )}
-
-                            <div className="min-w-0 flex-1">
-                              <p className="break-words font-semibold leading-5 text-slate-800">
-                                {
-                                  article.title
-                                }
-                              </p>
-
-                              <p className="mt-1 max-w-full truncate text-xs text-slate-400">
-                                /
-                                {
-                                  article.slug
-                                }
-                              </p>
-
-                              {showStaffFeedback && (
-                                <div className="mt-3 max-w-full rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
-                                  <div className="flex items-start gap-2.5">
-                                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-                                      <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        className="h-4 w-4"
-                                      >
-                                        <path d="M12 9v4" />
-
-                                        <path d="M12 17h.01" />
-
-                                        <circle
-                                          cx="12"
-                                          cy="12"
-                                          r="9"
-                                        />
-                                      </svg>
-                                    </div>
-
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-bold uppercase tracking-[0.1em] text-red-700">
-                                        Staff Feedback
-                                      </p>
-
-                                      <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700/80">
-                                        {
-                                          article.review_notes
-                                        }
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Category */}
-                        <td className="break-words px-4 py-5 align-top text-sm leading-5 text-slate-600">
-                          {
-                            article.category
+                  return (
+                    <article
+                      key={
+                        article.id
+                      }
+                      className="p-4 sm:p-5"
+                    >
+                      {/* Main Article */}
+                      <div className="flex min-w-0 items-start gap-3">
+                        <ArticleCover
+                          article={
+                            article
                           }
-                        </td>
+                          mobile
+                        />
 
-                        {/* Status */}
-                        <td className="px-4 py-5 align-top">
-                          <StatusBadge
-                            status={
-                              article.status
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words text-sm font-bold leading-5 text-slate-900 sm:text-base">
+                            {
+                              article.title
                             }
-                          />
+                          </h3>
 
-                          {isRepresentative && (
-                            <RepresentativeStatusHelp
+                          <p className="mt-1 truncate text-xs text-slate-400">
+                            /
+                            {
+                              article.slug
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Metadata */}
+                      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl bg-slate-50/80 p-3">
+                        <div className="col-span-2 min-w-0">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                            Category
+                          </p>
+
+                          <p className="mt-1 break-words text-sm font-medium text-slate-700">
+                            {
+                              article.category
+                            }
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                            Status
+                          </p>
+
+                          <div className="mt-1.5">
+                            <StatusBadge
                               status={
                                 article.status
                               }
                             />
-                          )}
-                        </td>
 
-                        {/* Featured */}
-                        <td className="px-4 py-5 align-top">
-                          {article.featured ? (
-                            <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                              Yes
-                            </span>
-                          ) : (
-                            <span className="text-sm text-slate-500">
-                              No
-                            </span>
-                          )}
-                        </td>
+                            {isRepresentative && (
+                              <RepresentativeStatusHelp
+                                status={
+                                  article.status
+                                }
+                              />
+                            )}
+                          </div>
+                        </div>
 
-                        {/* Created */}
-                        <td className="px-4 py-5 align-top text-sm leading-5 text-slate-500">
-                          {new Intl.DateTimeFormat(
-                            "en-GB",
-                            {
-                              day: "2-digit",
-                              month:
-                                "short",
-                              year:
-                                "numeric",
-                            },
-                          ).format(
-                            new Date(
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                            Featured
+                          </p>
+
+                          <div className="mt-1.5">
+                            {article.featured ? (
+                              <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                                Yes
+                              </span>
+                            ) : (
+                              <span className="text-sm font-medium text-slate-600">
+                                No
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="col-span-2">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                            Created
+                          </p>
+
+                          <p className="mt-1 text-sm font-medium text-slate-600">
+                            {formatDate(
                               article.created_at,
-                            ),
-                          )}
-                        </td>
+                            )}
+                          </p>
+                        </div>
+                      </div>
 
-                        {/* Actions */}
-                        <td className="px-4 py-5 align-top">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            {/* Internal Staff */}
-                            {!isRepresentative && (
-                              <>
-                                <Link
-                                  href={`/articles/${article.id}/edit`}
-                                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-violet-100 px-3 text-xs font-semibold text-violet-700 transition hover:border-violet-200 hover:bg-violet-50"
-                                >
-                                  <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.8"
-                                    className="h-4 w-4"
-                                  >
-                                    <path d="M12 20h9" />
+                      {/* Staff Feedback */}
+                      {showStaffFeedback && (
+                        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+                          <div className="flex items-start gap-2.5">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-4 w-4"
+                              >
+                                <path d="M12 9v4" />
+                                <path d="M12 17h.01" />
 
-                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-                                  </svg>
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="9"
+                                />
+                              </svg>
+                            </div>
 
-                                  Edit
-                                </Link>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold uppercase tracking-[0.1em] text-red-700">
+                                Staff Feedback
+                              </p>
 
+                              <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700/80">
+                                {
+                                  article.review_notes
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-violet-50 pt-4">
+                        {!isRepresentative && (
+                          <>
+                            <EditButton
+                              articleId={
+                                article.id
+                              }
+                            />
+
+                            <DeleteArticleButton
+                              articleId={
+                                article.id
+                              }
+                              articleTitle={
+                                article.title
+                              }
+                            />
+                          </>
+                        )}
+
+                        {representativeCanEdit && (
+                          <EditButton
+                            articleId={
+                              article.id
+                            }
+                          />
+                        )}
+
+                        {representativeCanDelete && (
+                          <DeleteArticleButton
+                            articleId={
+                              article.id
+                            }
+                            articleTitle={
+                              article.title
+                            }
+                          />
+                        )}
+
+                        {representativeCanSubmit && (
+                          <SubmitArticleForReviewButton
+                            articleId={
+                              article.id
+                            }
+                            articleTitle={
+                              article.title
+                            }
+                          />
+                        )}
+
+                        {representativeIsLocked && (
+                          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-500">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              className="h-4 w-4"
+                            >
+                              <rect
+                                x="5"
+                                y="10"
+                                width="14"
+                                height="10"
+                                rx="2"
+                              />
+
+                              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                            </svg>
+
+                            Locked
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                },
+              )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden w-full xl:block">
+              <table className="w-full table-fixed">
+                <thead className="border-b border-violet-100 bg-violet-50/50">
+                  <tr>
+                    <th className="w-[34%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Article
+                    </th>
+
+                    <th className="w-[11%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Category
+                    </th>
+
+                    <th className="w-[13%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Status
+                    </th>
+
+                    <th className="w-[8%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Featured
+                    </th>
+
+                    <th className="w-[12%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Created
+                    </th>
+
+                    <th className="w-[22%] px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-violet-50">
+                  {filteredArticles.map(
+                    (article) => {
+                      const normalizedStatus =
+                        normalizeStatus(
+                          article.status,
+                        );
+
+                      const representativeCanEdit =
+                        isRepresentative &&
+                        [
+                          "draft",
+                          "rejected",
+                        ].includes(
+                          normalizedStatus,
+                        );
+
+                      const representativeCanDelete =
+                        representativeCanEdit;
+
+                      const representativeCanSubmit =
+                        isRepresentative &&
+                        normalizedStatus ===
+                          "draft";
+
+                      const representativeIsLocked =
+                        isRepresentative &&
+                        [
+                          "under_review",
+                          "published",
+                          "archived",
+                        ].includes(
+                          normalizedStatus,
+                        );
+
+                      const showStaffFeedback =
+                        isRepresentative &&
+                        normalizedStatus ===
+                          "rejected" &&
+                        Boolean(
+                          article.review_notes?.trim(),
+                        );
+
+                      return (
+                        <tr
+                          key={
+                            article.id
+                          }
+                          className="transition hover:bg-violet-50/30"
+                        >
+                          {/* Article */}
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <ArticleCover
+                                article={
+                                  article
+                                }
+                              />
+
+                              <div className="min-w-0 flex-1">
+                                <p className="break-words font-semibold leading-5 text-slate-800">
+                                  {
+                                    article.title
+                                  }
+                                </p>
+
+                                <p className="mt-1 max-w-full truncate text-xs text-slate-400">
+                                  /
+                                  {
+                                    article.slug
+                                  }
+                                </p>
+
+                                {showStaffFeedback && (
+                                  <div className="mt-3 max-w-full rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+                                    <div className="flex items-start gap-2.5">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                                        <svg
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          className="h-4 w-4"
+                                        >
+                                          <path d="M12 9v4" />
+                                          <path d="M12 17h.01" />
+
+                                          <circle
+                                            cx="12"
+                                            cy="12"
+                                            r="9"
+                                          />
+                                        </svg>
+                                      </div>
+
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-bold uppercase tracking-[0.1em] text-red-700">
+                                          Staff Feedback
+                                        </p>
+
+                                        <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700/80">
+                                          {
+                                            article.review_notes
+                                          }
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="break-words px-4 py-5 align-top text-sm leading-5 text-slate-600">
+                            {
+                              article.category
+                            }
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-4 py-5 align-top">
+                            <StatusBadge
+                              status={
+                                article.status
+                              }
+                            />
+
+                            {isRepresentative && (
+                              <RepresentativeStatusHelp
+                                status={
+                                  article.status
+                                }
+                              />
+                            )}
+                          </td>
+
+                          {/* Featured */}
+                          <td className="px-4 py-5 align-top">
+                            {article.featured ? (
+                              <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                                Yes
+                              </span>
+                            ) : (
+                              <span className="text-sm text-slate-500">
+                                No
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Created */}
+                          <td className="px-4 py-5 align-top text-sm leading-5 text-slate-500">
+                            {formatDate(
+                              article.created_at,
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-5 align-top">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              {!isRepresentative && (
+                                <>
+                                  <EditButton
+                                    articleId={
+                                      article.id
+                                    }
+                                  />
+
+                                  <DeleteArticleButton
+                                    articleId={
+                                      article.id
+                                    }
+                                    articleTitle={
+                                      article.title
+                                    }
+                                  />
+                                </>
+                              )}
+
+                              {representativeCanEdit && (
+                                <EditButton
+                                  articleId={
+                                    article.id
+                                  }
+                                />
+                              )}
+
+                              {representativeCanDelete && (
                                 <DeleteArticleButton
                                   articleId={
                                     article.id
@@ -795,88 +1123,52 @@ export default function ArticlesTable({
                                     article.title
                                   }
                                 />
-                              </>
-                            )}
+                              )}
 
-                            {/* Representative Edit */}
-                            {representativeCanEdit && (
-                              <Link
-                                href={`/articles/${article.id}/edit`}
-                                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-violet-100 px-3 text-xs font-semibold text-violet-700 transition hover:border-violet-200 hover:bg-violet-50"
-                              >
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  className="h-4 w-4"
-                                >
-                                  <path d="M12 20h9" />
+                              {representativeCanSubmit && (
+                                <SubmitArticleForReviewButton
+                                  articleId={
+                                    article.id
+                                  }
+                                  articleTitle={
+                                    article.title
+                                  }
+                                />
+                              )}
 
-                                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-                                </svg>
+                              {representativeIsLocked && (
+                                <span className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-500">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    className="h-4 w-4"
+                                  >
+                                    <rect
+                                      x="5"
+                                      y="10"
+                                      width="14"
+                                      height="10"
+                                      rx="2"
+                                    />
 
-                                Edit
-                              </Link>
-                            )}
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                  </svg>
 
-                            {/* Representative Delete */}
-                            {representativeCanDelete && (
-                              <DeleteArticleButton
-                                articleId={
-                                  article.id
-                                }
-                                articleTitle={
-                                  article.title
-                                }
-                              />
-                            )}
-
-                            {/* Representative Submit */}
-                            {representativeCanSubmit && (
-                              <SubmitArticleForReviewButton
-                                articleId={
-                                  article.id
-                                }
-                                articleTitle={
-                                  article.title
-                                }
-                              />
-                            )}
-
-                            {/* Representative Locked */}
-                            {representativeIsLocked && (
-                              <span className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-500">
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  className="h-4 w-4"
-                                >
-                                  <rect
-                                    x="5"
-                                    y="10"
-                                    width="14"
-                                    height="10"
-                                    rx="2"
-                                  />
-
-                                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-                                </svg>
-
-                                Locked
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
-              </tbody>
-            </table>
-          </div>
+                                  Locked
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

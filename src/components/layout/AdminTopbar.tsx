@@ -219,11 +219,16 @@ export default function AdminTopbar({
   role,
   roleLabel,
 }: AdminTopbarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname =
+    usePathname();
+
+  const router =
+    useRouter();
 
   const searchInputRef =
-    useRef<HTMLInputElement>(null);
+    useRef<HTMLInputElement>(
+      null,
+    );
 
   const [
     searchOpen,
@@ -298,7 +303,7 @@ export default function AdminTopbar({
 
       return items;
     }, [
-      role,
+      visibleNavigation,
       canViewSettings,
     ]);
 
@@ -366,6 +371,8 @@ export default function AdminTopbar({
       ) {
         setSearchOpen(false);
         setSearchQuery("");
+        setProfileMenuOpen(false);
+        setMobileMenuOpen(false);
       }
     }
 
@@ -450,6 +457,7 @@ export default function AdminTopbar({
     }
 
     setProfileMenuOpen(false);
+    setMobileMenuOpen(false);
 
     router.replace("/login");
     router.refresh();
@@ -457,19 +465,29 @@ export default function AdminTopbar({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-violet-100 bg-white/95 px-5 backdrop-blur-md sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-30 flex h-20 w-full min-w-0 max-w-full items-center justify-between overflow-visible border-b border-violet-100 bg-white/95 px-3 backdrop-blur-md sm:px-6 lg:px-8">
         {/* Left */}
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <button
             type="button"
             aria-label="Open navigation menu"
             aria-expanded={
               mobileMenuOpen
             }
-            onClick={() =>
-              setMobileMenuOpen(true)
-            }
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-violet-50 hover:text-violet-700 lg:hidden"
+            onClick={() => {
+              setMobileMenuOpen(
+                true,
+              );
+
+              setProfileMenuOpen(
+                false,
+              );
+
+              setSearchOpen(
+                false,
+              );
+            }}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-700 transition hover:bg-violet-50 hover:text-violet-700 lg:hidden"
           >
             <svg
               viewBox="0 0 24 24"
@@ -484,26 +502,28 @@ export default function AdminTopbar({
             </svg>
           </button>
 
-          <div>
-            <p className="text-xs font-medium text-slate-400">
+          <div className="hidden min-w-0 sm:block">
+            <p className="truncate text-xs font-medium text-slate-400">
               7ICONS Administration
             </p>
 
-            <p className="text-sm font-semibold text-slate-700">
+            <p className="truncate text-sm font-semibold text-slate-700">
               Digital Platform Management
             </p>
           </div>
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-3">
           {/* Search */}
           <button
             type="button"
             aria-label="Global Search"
             title="Search · Ctrl+K"
-            onClick={openSearch}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl px-2.5 text-slate-600 transition hover:bg-violet-50 hover:text-violet-700 sm:px-3"
+            onClick={
+              openSearch
+            }
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-700 sm:w-auto sm:gap-2 sm:px-3"
           >
             <svg
               viewBox="0 0 24 24"
@@ -527,14 +547,16 @@ export default function AdminTopbar({
           </button>
 
           {/* Notifications */}
-          <AdminNotifications
-            userId={userId}
-          />
+          <div className="shrink-0">
+            <AdminNotifications
+              userId={userId}
+            />
+          </div>
 
           <div className="hidden h-7 w-px bg-slate-200 sm:block" />
 
           {/* Profile */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               aria-expanded={
@@ -547,8 +569,9 @@ export default function AdminTopbar({
                 );
 
                 setSearchOpen(false);
+                setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-violet-50"
+              className="flex items-center gap-0 rounded-xl px-1 py-1.5 transition hover:bg-violet-50 sm:gap-3 sm:px-2"
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
                 {avatarUrl ? (
@@ -593,7 +616,7 @@ export default function AdminTopbar({
             </button>
 
             {profileMenuOpen && (
-              <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-xl shadow-violet-950/10">
+              <div className="absolute right-0 top-12 z-50 w-[calc(100vw-1.5rem)] max-w-64 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-xl shadow-violet-950/10">
                 <div className="border-b border-violet-100 px-4 py-4">
                   <p className="truncate text-sm font-bold text-slate-800">
                     {displayName}
@@ -605,8 +628,10 @@ export default function AdminTopbar({
                     </p>
                   )}
 
-                  <span className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-violet-700">
-                    {roleLabel}
+                  <span className="mt-3 inline-flex max-w-full rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-violet-700">
+                    <span className="truncate">
+                      {roleLabel}
+                    </span>
                   </span>
                 </div>
 
@@ -626,13 +651,14 @@ export default function AdminTopbar({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.8"
-                        className="h-5 w-5"
+                        className="h-5 w-5 shrink-0"
                       >
                         <circle
                           cx="12"
                           cy="12"
                           r="3"
                         />
+
                         <path d="M12 2v3" />
                         <path d="M12 19v3" />
                         <path d="m4.9 4.9 2.1 2.1" />
@@ -662,7 +688,7 @@ export default function AdminTopbar({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="1.8"
-                      className="h-5 w-5"
+                      className="h-5 w-5 shrink-0"
                     >
                       <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" />
                       <path d="M14 8l4 4-4 4" />
@@ -682,18 +708,20 @@ export default function AdminTopbar({
 
       {/* Global Search */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[70]">
+        <div className="fixed inset-0 z-[70] overflow-x-hidden px-3">
           <button
             type="button"
             aria-label="Close search"
-            onClick={closeSearch}
+            onClick={
+              closeSearch
+            }
             className="absolute inset-0 bg-slate-950/25 backdrop-blur-[2px]"
           />
 
-          <div className="relative mx-auto mt-20 w-[calc(100%-2rem)] max-w-2xl sm:mt-24">
+          <div className="relative mx-auto mt-20 w-full max-w-2xl sm:mt-24">
             <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-2xl shadow-violet-950/15">
-              <div className="border-b border-violet-100 p-4">
-                <div className="flex items-center gap-3 rounded-2xl bg-violet-50 px-4">
+              <div className="border-b border-violet-100 p-3 sm:p-4">
+                <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-violet-50 px-3 sm:gap-3 sm:px-4">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -718,22 +746,28 @@ export default function AdminTopbar({
                     value={
                       searchQuery
                     }
-                    onChange={(event) =>
+                    onChange={(
+                      event,
+                    ) =>
                       setSearchQuery(
-                        event.target.value,
+                        event.target
+                          .value,
                       )
                     }
-                    onKeyDown={(event) => {
+                    onKeyDown={(
+                      event,
+                    ) => {
                       if (
                         event.key ===
                         "Enter"
                       ) {
                         event.preventDefault();
+
                         handleSearchSubmit();
                       }
                     }}
                     placeholder="Search the admin panel..."
-                    className="h-14 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                    className="h-14 min-w-0 flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
                   />
 
                   <button
@@ -741,7 +775,7 @@ export default function AdminTopbar({
                     onClick={
                       closeSearch
                     }
-                    className="rounded-lg border border-violet-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400"
+                    className="hidden shrink-0 rounded-lg border border-violet-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:block"
                   >
                     ESC
                   </button>
@@ -783,14 +817,14 @@ export default function AdminTopbar({
                                 item.href,
                               )
                             }
-                            className={`group flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3.5 text-left transition ${
+                            className={`group flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl px-3 py-3.5 text-left transition sm:gap-4 sm:px-4 ${
                               active
                                 ? "bg-violet-50"
                                 : "hover:bg-violet-50/70"
                             }`}
                           >
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-2">
                                 <p className="truncate text-sm font-bold text-slate-800 group-hover:text-violet-700">
                                   {
                                     item.label
@@ -798,7 +832,7 @@ export default function AdminTopbar({
                                 </p>
 
                                 {active && (
-                                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700">
+                                  <span className="hidden shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700 sm:inline-flex">
                                     Current
                                   </span>
                                 )}
@@ -860,7 +894,7 @@ export default function AdminTopbar({
                 )}
               </div>
 
-              <div className="flex items-center justify-between border-t border-violet-100 bg-slate-50/70 px-5 py-3 text-[10px] font-medium text-slate-400">
+              <div className="flex items-center justify-between border-t border-violet-100 bg-slate-50/70 px-4 py-3 text-[10px] font-medium text-slate-400 sm:px-5">
                 <span>
                   Results respect your
                   role permissions
@@ -878,7 +912,7 @@ export default function AdminTopbar({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 overflow-hidden lg:hidden">
           <button
             type="button"
             aria-label="Close navigation menu"
@@ -888,13 +922,16 @@ export default function AdminTopbar({
             className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"
           />
 
-          <aside className="relative flex h-full w-[290px] max-w-[85vw] flex-col border-r border-violet-100 bg-white shadow-2xl">
-            <div className="flex h-20 items-center justify-between border-b border-violet-100 px-5">
+          <aside className="relative flex h-full w-[290px] max-w-[85vw] flex-col overflow-hidden border-r border-violet-100 bg-white shadow-2xl">
+            <div className="flex h-20 shrink-0 items-center justify-between border-b border-violet-100 px-5">
               <Link
                 href="/dashboard"
                 onClick={() =>
-                  setMobileMenuOpen(false)
+                  setMobileMenuOpen(
+                    false,
+                  )
                 }
+                className="min-w-0"
               >
                 <Image
                   src="/brand/7icons-admin-logo.png"
@@ -902,7 +939,7 @@ export default function AdminTopbar({
                   width={190}
                   height={75}
                   priority
-                  className="h-auto w-36 object-contain"
+                  className="h-auto w-36 max-w-full object-contain"
                 />
               </Link>
 
@@ -910,9 +947,11 @@ export default function AdminTopbar({
                 type="button"
                 aria-label="Close navigation menu"
                 onClick={() =>
-                  setMobileMenuOpen(false)
+                  setMobileMenuOpen(
+                    false,
+                  )
                 }
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-violet-50 hover:text-violet-700"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-violet-50 hover:text-violet-700"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -927,7 +966,7 @@ export default function AdminTopbar({
               </button>
             </div>
 
-            <div className="flex flex-1 flex-col overflow-y-auto px-4 py-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-4 py-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <p className="mb-3 px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Management
               </p>
@@ -953,13 +992,15 @@ export default function AdminTopbar({
                             false,
                           )
                         }
-                        className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                        className={`flex min-w-0 items-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
                           active
                             ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white shadow-lg shadow-violet-500/15"
                             : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
                         }`}
                       >
-                        {item.label}
+                        <span className="min-w-0 truncate">
+                          {item.label}
+                        </span>
                       </Link>
                     );
                   },
@@ -990,7 +1031,7 @@ export default function AdminTopbar({
                 )}
 
                 <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white">
                       {avatarUrl ? (
                         <div
@@ -1008,7 +1049,7 @@ export default function AdminTopbar({
                       )}
                     </div>
 
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-slate-800">
                         {displayName}
                       </p>
