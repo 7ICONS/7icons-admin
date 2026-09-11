@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import AdminRouteGuard from "@/components/layout/AdminRouteGuard";
 import AdminSidebar from "@/components/layout/AdminSidebar";
 import AdminTopbar from "@/components/layout/AdminTopbar";
 
@@ -7,6 +8,7 @@ import {
   getRoleLabel,
   isAdminRole,
 } from "@/lib/permissions";
+
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({
@@ -17,7 +19,6 @@ export default async function AdminLayout({
   const supabase =
     await createClient();
 
-  // 1. Pastikan user login
   const { data: claimsData } =
     await supabase.auth.getClaims();
 
@@ -28,7 +29,6 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  // 2. Ambil role + profile
   const [
     {
       data: adminRole,
@@ -118,9 +118,7 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-[#f8f7ff]">
       <AdminSidebar
-        displayName={
-          displayName
-        }
+        displayName={displayName}
         avatarUrl={avatarUrl}
         role={adminRole.role}
         roleLabel={roleLabel}
@@ -128,9 +126,8 @@ export default async function AdminLayout({
 
       <div className="min-w-0 flex flex-1 flex-col">
         <AdminTopbar
-          displayName={
-            displayName
-          }
+          userId={userId}
+          displayName={displayName}
           email={email}
           avatarUrl={avatarUrl}
           role={adminRole.role}
@@ -138,7 +135,11 @@ export default async function AdminLayout({
         />
 
         <main className="flex-1 p-5 sm:p-6 lg:p-8">
-          {children}
+          <AdminRouteGuard
+            role={adminRole.role}
+          >
+            {children}
+          </AdminRouteGuard>
         </main>
       </div>
     </div>

@@ -22,7 +22,9 @@ export default function AdminLogin() {
     setErrorMessage("");
 
     if (!email.trim() || !password) {
-      setErrorMessage("Please enter your email address and password.");
+      setErrorMessage(
+        "Please enter your email address and password.",
+      );
       return;
     }
 
@@ -31,10 +33,11 @@ export default function AdminLogin() {
     try {
       const supabase = createClient();
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const { error } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
       if (error) {
         setErrorMessage(error.message);
@@ -147,7 +150,9 @@ export default function AdminLogin() {
                   name="email"
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) =>
+                    setEmail(event.target.value)
+                  }
                   placeholder="admin@7icons.com"
                   autoComplete="email"
                   disabled={isLoading}
@@ -178,7 +183,9 @@ export default function AdminLogin() {
                   name="password"
                   type="password"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   disabled={isLoading}
@@ -191,7 +198,9 @@ export default function AdminLogin() {
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(event) => setRememberMe(event.target.checked)}
+                  onChange={(event) =>
+                    setRememberMe(event.target.checked)
+                  }
                   className="h-4 w-4 rounded border-slate-300 accent-violet-600"
                 />
 
@@ -250,7 +259,7 @@ export default function AdminLogin() {
               </button>
             </form>
 
-            {/* Supabase Notice */}
+            {/* Access Notice */}
             <div className="mt-8 rounded-2xl border border-violet-100 bg-violet-50/70 p-4">
               <div className="flex gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-violet-600 shadow-sm">
@@ -275,12 +284,12 @@ export default function AdminLogin() {
 
                 <div>
                   <p className="text-sm font-semibold text-violet-950">
-                    Secure Admin Access
+                    Authorized Access Only
                   </p>
 
                   <p className="mt-1 text-xs leading-5 text-violet-700/70">
-                    Authentication is connected to the 7ICONS platform
-                    through Supabase.
+                    This portal is available to 7ICONS staff and approved
+                    ICONIA Representatives.
                   </p>
                 </div>
               </div>

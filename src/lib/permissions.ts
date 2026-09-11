@@ -118,6 +118,8 @@ const rolePermissions: Record<
 
     "media.view",
     "media.manage_all",
+
+    "settings.view",
   ],
 
   moderator: [
@@ -128,6 +130,8 @@ const rolePermissions: Record<
 
     "comments.view",
     "comments.moderate",
+
+    "settings.view",
   ],
 
   representative: [
@@ -146,6 +150,8 @@ const rolePermissions: Record<
 
     "media.view",
     "media.manage_own",
+
+    "settings.view",
   ],
 };
 

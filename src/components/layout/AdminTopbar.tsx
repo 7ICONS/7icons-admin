@@ -6,8 +6,14 @@ import {
   usePathname,
   useRouter,
 } from "next/navigation";
-import { useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import AdminNotifications from "@/components/layout/AdminNotifications";
 import {
   hasPermission,
   type AdminPermission,
@@ -16,6 +22,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 type AdminTopbarProps = {
+  userId: string;
   displayName: string;
   email: string;
   avatarUrl: string;
@@ -27,6 +34,8 @@ type MobileNavigationItem = {
   label: string;
   href: string;
   permission: AdminPermission;
+  description: string;
+  keywords: string[];
 };
 
 const mobileNavigation: MobileNavigationItem[] = [
@@ -34,57 +43,148 @@ const mobileNavigation: MobileNavigationItem[] = [
     label: "Dashboard",
     href: "/dashboard",
     permission: "dashboard.view",
+    description:
+      "Overview, statistics, recent activity, and quick actions.",
+    keywords: [
+      "home",
+      "overview",
+      "statistics",
+      "activity",
+    ],
   },
   {
     label: "Articles",
     href: "/articles",
     permission: "articles.view",
+    description:
+      "Create, edit, review, and manage articles.",
+    keywords: [
+      "article",
+      "blog",
+      "news",
+      "story",
+      "content",
+    ],
   },
   {
     label: "Members",
     href: "/members",
     permission: "members.manage",
+    description:
+      "Manage current and former 7ICONS members.",
+    keywords: [
+      "member",
+      "7icons",
+      "profile",
+      "former",
+    ],
   },
   {
     label: "Gallery",
     href: "/gallery",
     permission: "gallery.view",
+    description:
+      "Manage gallery albums and photos.",
+    keywords: [
+      "gallery",
+      "album",
+      "photo",
+      "image",
+    ],
   },
   {
     label: "Schedule",
     href: "/schedule",
     permission: "schedule.manage",
+    description:
+      "Manage events and upcoming schedules.",
+    keywords: [
+      "schedule",
+      "event",
+      "calendar",
+      "activity",
+    ],
   },
   {
     label: "Fan Representatives",
     href: "/representatives",
     permission:
       "representatives.manage",
+    description:
+      "Manage ICONIA Fan Representatives.",
+    keywords: [
+      "representative",
+      "iconia",
+      "region",
+      "community",
+      "fan",
+    ],
   },
   {
     label: "Applications",
     href: "/applications",
     permission: "applications.view",
+    description:
+      "Review community and representative applications.",
+    keywords: [
+      "application",
+      "apply",
+      "review",
+      "applicant",
+    ],
   },
   {
     label: "Users",
     href: "/users",
     permission: "users.view",
+    description:
+      "View and manage registered platform users.",
+    keywords: [
+      "user",
+      "account",
+      "registered",
+    ],
   },
   {
     label: "Comments",
     href: "/comments",
     permission: "comments.view",
+    description:
+      "Review and moderate community comments.",
+    keywords: [
+      "comment",
+      "moderation",
+      "reply",
+      "spam",
+    ],
   },
   {
     label: "Media",
     href: "/media",
     permission: "media.view",
+    description:
+      "Manage uploaded media and shared assets.",
+    keywords: [
+      "media",
+      "asset",
+      "upload",
+      "image",
+      "file",
+    ],
   },
   {
     label: "Team",
     href: "/team",
     permission: "team.view",
+    description:
+      "Manage administration team access.",
+    keywords: [
+      "team",
+      "staff",
+      "admin",
+      "role",
+      "permission",
+    ],
   },
 ];
 
@@ -112,6 +212,7 @@ function getInitials(
 }
 
 export default function AdminTopbar({
+  userId,
   displayName,
   email,
   avatarUrl,
@@ -121,10 +222,18 @@ export default function AdminTopbar({
   const pathname = usePathname();
   const router = useRouter();
 
+  const searchInputRef =
+    useRef<HTMLInputElement>(null);
+
   const [
     searchOpen,
     setSearchOpen,
   ] = useState(false);
+
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState("");
 
   const [
     mobileMenuOpen,
@@ -162,6 +271,68 @@ export default function AdminTopbar({
       "settings.view",
     );
 
+  const searchableNavigation =
+    useMemo(() => {
+      const items = [
+        ...visibleNavigation,
+      ];
+
+      if (canViewSettings) {
+        items.push({
+          label: "Settings",
+          href: "/settings",
+          permission:
+            "settings.view",
+          description:
+            "Manage your profile, avatar, password, and account settings.",
+          keywords: [
+            "settings",
+            "profile",
+            "account",
+            "avatar",
+            "password",
+            "security",
+          ],
+        });
+      }
+
+      return items;
+    }, [
+      role,
+      canViewSettings,
+    ]);
+
+  const searchResults =
+    useMemo(() => {
+      const normalizedQuery =
+        searchQuery
+          .trim()
+          .toLowerCase();
+
+      if (!normalizedQuery) {
+        return searchableNavigation;
+      }
+
+      return searchableNavigation.filter(
+        (item) => {
+          const haystack = [
+            item.label,
+            item.description,
+            ...item.keywords,
+          ]
+            .join(" ")
+            .toLowerCase();
+
+          return haystack.includes(
+            normalizedQuery,
+          );
+        },
+      );
+    }, [
+      searchQuery,
+      searchableNavigation,
+    ]);
+
   const isActive = (
     href: string,
   ) => {
@@ -172,6 +343,92 @@ export default function AdminTopbar({
       )
     );
   };
+
+  useEffect(() => {
+    function handleKeyboard(
+      event: KeyboardEvent,
+    ) {
+      if (
+        (event.ctrlKey ||
+          event.metaKey) &&
+        event.key.toLowerCase() ===
+          "k"
+      ) {
+        event.preventDefault();
+
+        setSearchOpen(true);
+        setProfileMenuOpen(false);
+        setMobileMenuOpen(false);
+      }
+
+      if (
+        event.key === "Escape"
+      ) {
+        setSearchOpen(false);
+        setSearchQuery("");
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleKeyboard,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyboard,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!searchOpen) {
+      return;
+    }
+
+    const timeout =
+      window.setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+
+    return () => {
+      window.clearTimeout(
+        timeout,
+      );
+    };
+  }, [searchOpen]);
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery("");
+  }
+
+  function openSearch() {
+    setSearchOpen(true);
+    setProfileMenuOpen(false);
+    setMobileMenuOpen(false);
+  }
+
+  function handleSearchResult(
+    href: string,
+  ) {
+    closeSearch();
+    router.push(href);
+  }
+
+  function handleSearchSubmit() {
+    const firstResult =
+      searchResults[0];
+
+    if (!firstResult) {
+      return;
+    }
+
+    handleSearchResult(
+      firstResult.href,
+    );
+  }
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -203,7 +460,6 @@ export default function AdminTopbar({
       <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-violet-100 bg-white/95 px-5 backdrop-blur-md sm:px-6 lg:px-8">
         {/* Left */}
         <div className="flex items-center gap-4">
-          {/* Mobile Menu Button */}
           <button
             type="button"
             aria-label="Open navigation menu"
@@ -242,68 +498,12 @@ export default function AdminTopbar({
         {/* Right */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Search */}
-          <div className="relative">
-            {searchOpen && (
-              <div className="absolute right-0 top-12 hidden w-72 rounded-2xl border border-violet-100 bg-white p-2 shadow-xl shadow-violet-950/10 sm:block">
-                <div className="flex items-center gap-2 rounded-xl bg-violet-50 px-3">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    className="h-4 w-4 shrink-0 text-violet-500"
-                  >
-                    <circle
-                      cx="11"
-                      cy="11"
-                      r="7"
-                    />
-                    <path d="m20 20-4-4" />
-                  </svg>
-
-                  <input
-                    type="search"
-                    autoFocus
-                    placeholder="Search admin..."
-                    className="h-10 w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              aria-label="Search"
-              onClick={() =>
-                setSearchOpen(
-                  (current) =>
-                    !current,
-                )
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                className="h-5 w-5"
-              >
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"
-                />
-                <path d="m20 20-4-4" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Notification */}
           <button
             type="button"
-            aria-label="Notifications"
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-700"
+            aria-label="Global Search"
+            title="Search · Ctrl+K"
+            onClick={openSearch}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl px-2.5 text-slate-600 transition hover:bg-violet-50 hover:text-violet-700 sm:px-3"
           >
             <svg
               viewBox="0 0 24 24"
@@ -312,28 +512,42 @@ export default function AdminTopbar({
               strokeWidth="1.8"
               className="h-5 w-5"
             >
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-              <path d="M10 21h4" />
+              <circle
+                cx="11"
+                cy="11"
+                r="7"
+              />
+
+              <path d="m20 20-4-4" />
             </svg>
 
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-violet-500 ring-2 ring-white" />
+            <span className="hidden text-xs font-semibold text-slate-400 xl:inline">
+              Ctrl K
+            </span>
           </button>
+
+          {/* Notifications */}
+          <AdminNotifications
+            userId={userId}
+          />
 
           <div className="hidden h-7 w-px bg-slate-200 sm:block" />
 
-          {/* Admin Profile */}
+          {/* Profile */}
           <div className="relative">
             <button
               type="button"
               aria-expanded={
                 profileMenuOpen
               }
-              onClick={() =>
+              onClick={() => {
                 setProfileMenuOpen(
                   (current) =>
                     !current,
-                )
-              }
+                );
+
+                setSearchOpen(false);
+              }}
               className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-violet-50"
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
@@ -378,7 +592,6 @@ export default function AdminTopbar({
               </svg>
             </button>
 
-            {/* Profile Dropdown */}
             {profileMenuOpen && (
               <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-xl shadow-violet-950/10">
                 <div className="border-b border-violet-100 px-4 py-4">
@@ -467,10 +680,205 @@ export default function AdminTopbar({
         </div>
       </header>
 
+      {/* Global Search */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[70]">
+          <button
+            type="button"
+            aria-label="Close search"
+            onClick={closeSearch}
+            className="absolute inset-0 bg-slate-950/25 backdrop-blur-[2px]"
+          />
+
+          <div className="relative mx-auto mt-20 w-[calc(100%-2rem)] max-w-2xl sm:mt-24">
+            <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-2xl shadow-violet-950/15">
+              <div className="border-b border-violet-100 p-4">
+                <div className="flex items-center gap-3 rounded-2xl bg-violet-50 px-4">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="h-5 w-5 shrink-0 text-violet-500"
+                  >
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="7"
+                    />
+
+                    <path d="m20 20-4-4" />
+                  </svg>
+
+                  <input
+                    ref={
+                      searchInputRef
+                    }
+                    type="search"
+                    value={
+                      searchQuery
+                    }
+                    onChange={(event) =>
+                      setSearchQuery(
+                        event.target.value,
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (
+                        event.key ===
+                        "Enter"
+                      ) {
+                        event.preventDefault();
+                        handleSearchSubmit();
+                      }
+                    }}
+                    placeholder="Search the admin panel..."
+                    className="h-14 w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={
+                      closeSearch
+                    }
+                    className="rounded-lg border border-violet-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400"
+                  >
+                    ESC
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-[420px] overflow-y-auto p-2">
+                <div className="px-3 pb-2 pt-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                    {searchQuery.trim()
+                      ? `${searchResults.length} result${
+                          searchResults.length ===
+                          1
+                            ? ""
+                            : "s"
+                        }`
+                      : "Available Areas"}
+                  </p>
+                </div>
+
+                {searchResults.length >
+                0 ? (
+                  <div className="space-y-1">
+                    {searchResults.map(
+                      (item) => {
+                        const active =
+                          isActive(
+                            item.href,
+                          );
+
+                        return (
+                          <button
+                            key={
+                              item.href
+                            }
+                            type="button"
+                            onClick={() =>
+                              handleSearchResult(
+                                item.href,
+                              )
+                            }
+                            className={`group flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3.5 text-left transition ${
+                              active
+                                ? "bg-violet-50"
+                                : "hover:bg-violet-50/70"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-sm font-bold text-slate-800 group-hover:text-violet-700">
+                                  {
+                                    item.label
+                                  }
+                                </p>
+
+                                {active && (
+                                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700">
+                                    Current
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="mt-1 truncate text-xs text-slate-400">
+                                {
+                                  item.description
+                                }
+                              </p>
+                            </div>
+
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm transition group-hover:text-violet-600">
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-4 w-4"
+                              >
+                                <path d="M5 12h14" />
+                                <path d="m15 8 4 4-4 4" />
+                              </svg>
+                            </div>
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-5 py-12 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-400">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        className="h-5 w-5"
+                      >
+                        <circle
+                          cx="11"
+                          cy="11"
+                          r="7"
+                        />
+
+                        <path d="m20 20-4-4" />
+                      </svg>
+                    </div>
+
+                    <p className="mt-4 text-sm font-bold text-slate-700">
+                      No results found
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Try another search
+                      term.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-violet-100 bg-slate-50/70 px-5 py-3 text-[10px] font-medium text-slate-400">
+                <span>
+                  Results respect your
+                  role permissions
+                </span>
+
+                <span className="hidden sm:inline">
+                  Enter to open · Esc to
+                  close
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Overlay */}
           <button
             type="button"
             aria-label="Close navigation menu"
@@ -480,9 +888,7 @@ export default function AdminTopbar({
             className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"
           />
 
-          {/* Drawer */}
           <aside className="relative flex h-full w-[290px] max-w-[85vw] flex-col border-r border-violet-100 bg-white shadow-2xl">
-            {/* Brand */}
             <div className="flex h-20 items-center justify-between border-b border-violet-100 px-5">
               <Link
                 href="/dashboard"
@@ -521,7 +927,6 @@ export default function AdminTopbar({
               </button>
             </div>
 
-            {/* Navigation */}
             <div className="flex flex-1 flex-col overflow-y-auto px-4 py-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <p className="mb-3 px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Management
@@ -561,7 +966,6 @@ export default function AdminTopbar({
                 )}
               </nav>
 
-              {/* Bottom */}
               <div className="mt-auto pt-7">
                 <div className="mb-4 border-t border-violet-100" />
 

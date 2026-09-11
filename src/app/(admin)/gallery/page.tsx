@@ -48,15 +48,14 @@ type GalleryPhoto = {
   created_at: string;
 };
 
-function formatAlbumDate(
-  dateString: string | null,
-) {
+function formatAlbumDate(dateString: string | null) {
   if (!dateString) {
     return "—";
   }
 
-  const [year, month, day] =
-    dateString.split("-").map(Number);
+  const [year, month, day] = dateString
+    .split("-")
+    .map(Number);
 
   const date = new Date(
     year,
@@ -85,16 +84,12 @@ function StatusBadge({
   > = {
     draft:
       "border border-amber-200 bg-amber-50 text-amber-700",
-
     under_review:
       "border border-blue-200 bg-blue-50 text-blue-700",
-
     published:
       "border border-emerald-200 bg-emerald-50 text-emerald-700",
-
     rejected:
       "border border-red-200 bg-red-50 text-red-700",
-
     archived:
       "border border-slate-200 bg-slate-100 text-slate-600",
   };
@@ -439,7 +434,6 @@ export default async function GalleryPage() {
         {
           image_url:
             photo.image_url,
-
           alt_text:
             photo.alt_text,
         },
@@ -630,43 +624,43 @@ export default async function GalleryPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1380px]">
+          <div className="w-full">
+            <table className="w-full table-fixed">
               <thead className="border-b border-violet-100 bg-violet-50/50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[29%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Album
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[9%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Category
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[9%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Date
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[7%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Photos
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[13%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Status
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[8%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Published
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[8%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Featured
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[5%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Order
                   </th>
 
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[12%] px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                     Actions
                   </th>
                 </tr>
@@ -724,8 +718,8 @@ export default async function GalleryPage() {
                         className="transition hover:bg-violet-50/30"
                       >
                         {/* Album */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-start gap-4">
+                        <td className="px-4 py-4">
+                          <div className="flex min-w-0 items-start gap-3">
                             {cover ? (
                               <div
                                 role="img"
@@ -733,19 +727,19 @@ export default async function GalleryPage() {
                                   cover.alt_text ||
                                   album.title
                                 }
-                                className="h-16 w-20 shrink-0 rounded-2xl border border-violet-100 bg-slate-100 bg-cover bg-center shadow-sm"
+                                className="h-14 w-16 shrink-0 rounded-xl border border-violet-100 bg-slate-100 bg-cover bg-center shadow-sm"
                                 style={{
                                   backgroundImage: `url("${cover.image_url}")`,
                                 }}
                               />
                             ) : (
-                              <div className="flex h-16 w-20 shrink-0 items-center justify-center rounded-2xl border border-dashed border-violet-200 bg-violet-50/50 text-violet-400">
+                              <div className="flex h-14 w-16 shrink-0 items-center justify-center rounded-xl border border-dashed border-violet-200 bg-violet-50/50 text-violet-400">
                                 <svg
                                   viewBox="0 0 24 24"
                                   fill="none"
                                   stroke="currentColor"
                                   strokeWidth="1.8"
-                                  className="h-7 w-7"
+                                  className="h-6 w-6"
                                 >
                                   <rect
                                     x="3"
@@ -766,23 +760,23 @@ export default async function GalleryPage() {
                               </div>
                             )}
 
-                            <div className="min-w-0">
-                              <p className="max-w-[300px] truncate font-semibold text-slate-800">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-semibold text-slate-800">
                                 {album.title}
                               </p>
 
-                              <p className="mt-1 max-w-[320px] truncate text-xs text-slate-400">
+                              <p className="mt-1 truncate text-xs text-slate-400">
                                 {album.description ||
                                   "No description"}
                               </p>
 
                               {showStaffFeedback && (
-                                <div className="mt-3 max-w-sm rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+                                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
                                   <p className="text-xs font-bold uppercase tracking-[0.1em] text-red-700">
                                     Staff Feedback
                                   </p>
 
-                                  <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-red-700/80">
+                                  <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700/80">
                                     {
                                       album.review_notes
                                     }
@@ -794,22 +788,22 @@ export default async function GalleryPage() {
                         </td>
 
                         {/* Category */}
-                        <td className="px-6 py-5 align-top">
-                          <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                        <td className="px-4 py-5 align-top">
+                          <span className="inline-flex max-w-full whitespace-normal break-words rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
                             {album.category}
                           </span>
                         </td>
 
                         {/* Date */}
-                        <td className="px-6 py-5 align-top text-sm font-medium text-slate-600">
+                        <td className="px-4 py-5 align-top text-xs font-medium leading-5 text-slate-600">
                           {formatAlbumDate(
                             album.album_date,
                           )}
                         </td>
 
                         {/* Photos */}
-                        <td className="px-6 py-5 align-top">
-                          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                        <td className="px-4 py-5 align-top">
+                          <span className="inline-flex flex-wrap rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
                             {photoCount}{" "}
                             {photoCount === 1
                               ? "Photo"
@@ -818,7 +812,7 @@ export default async function GalleryPage() {
                         </td>
 
                         {/* Status */}
-                        <td className="px-6 py-5 align-top">
+                        <td className="px-4 py-5 align-top">
                           <StatusBadge
                             status={
                               album.status
@@ -835,7 +829,7 @@ export default async function GalleryPage() {
                         </td>
 
                         {/* Published */}
-                        <td className="px-6 py-5 align-top">
+                        <td className="px-4 py-5 align-top">
                           {album.is_published ? (
                             <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                               Yes
@@ -848,7 +842,7 @@ export default async function GalleryPage() {
                         </td>
 
                         {/* Featured */}
-                        <td className="px-6 py-5 align-top">
+                        <td className="px-4 py-5 align-top">
                           {album.is_featured ? (
                             <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
                               Yes
@@ -861,13 +855,13 @@ export default async function GalleryPage() {
                         </td>
 
                         {/* Order */}
-                        <td className="px-6 py-5 align-top text-sm font-medium text-slate-600">
+                        <td className="px-4 py-5 align-top text-sm font-medium text-slate-600">
                           {album.sort_order}
                         </td>
 
                         {/* Actions */}
-                        <td className="px-6 py-5 align-top">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-4 py-5 align-top">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
                             {/* Staff */}
                             {!isRepresentative && (
                               <>

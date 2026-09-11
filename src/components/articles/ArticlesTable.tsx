@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useMemo,
-  useState,
-} from "react";
+import { useMemo, useState } from "react";
 
 import DeleteArticleButton from "@/components/articles/DeleteArticleButton";
 import SubmitArticleForReviewButton from "@/components/articles/SubmitArticleForReviewButton";
@@ -130,7 +127,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
         styles[
           normalizedStatus
         ] ??
@@ -157,7 +154,7 @@ function RepresentativeStatusHelp({
     "under_review"
   ) {
     return (
-      <p className="mt-1 text-xs text-blue-600">
+      <p className="mt-1 text-xs leading-4 text-blue-600">
         Waiting for staff review
       </p>
     );
@@ -168,7 +165,7 @@ function RepresentativeStatusHelp({
     "rejected"
   ) {
     return (
-      <p className="mt-1 text-xs text-red-500">
+      <p className="mt-1 text-xs leading-4 text-red-500">
         Revision required
       </p>
     );
@@ -179,7 +176,7 @@ function RepresentativeStatusHelp({
     "published"
   ) {
     return (
-      <p className="mt-1 text-xs text-emerald-600">
+      <p className="mt-1 text-xs leading-4 text-emerald-600">
         Published by staff
       </p>
     );
@@ -276,7 +273,8 @@ export default function ArticlesTable({
   const hasActiveFilters =
     searchQuery.trim() !==
       "" ||
-    statusFilter !== "all" ||
+    statusFilter !==
+      "all" ||
     categoryFilter !==
       "All";
 
@@ -451,6 +449,7 @@ export default function ArticlesTable({
             </select>
           </div>
 
+          {/* Clear Filters */}
           {hasActiveFilters && (
             <button
               type="button"
@@ -533,31 +532,31 @@ export default function ArticlesTable({
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px]">
+          <div className="w-full">
+            <table className="w-full table-fixed">
               <thead className="border-b border-violet-100 bg-violet-50/50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[34%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Article
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[11%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Category
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[13%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Status
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[8%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Featured
                   </th>
 
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[12%] px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                     Created
                   </th>
 
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="w-[22%] px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                     Actions
                   </th>
                 </tr>
@@ -614,19 +613,19 @@ export default function ArticlesTable({
                         className="transition hover:bg-violet-50/30"
                       >
                         {/* Article */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-start gap-4">
+                        <td className="px-4 py-4 align-top">
+                          <div className="flex min-w-0 items-start gap-3">
                             {article.cover_image ? (
                               <div
                                 role="img"
                                 aria-label={`${article.title} cover`}
-                                className="h-16 w-28 shrink-0 rounded-xl border border-violet-100 bg-slate-100 bg-cover bg-center shadow-sm"
+                                className="h-14 w-24 shrink-0 rounded-xl border border-violet-100 bg-slate-100 bg-cover bg-center shadow-sm"
                                 style={{
                                   backgroundImage: `url("${article.cover_image}")`,
                                 }}
                               />
                             ) : (
-                              <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-xl border border-dashed border-violet-200 bg-violet-50/50 text-violet-400">
+                              <div className="flex h-14 w-24 shrink-0 items-center justify-center rounded-xl border border-dashed border-violet-200 bg-violet-50/50 text-violet-400">
                                 <svg
                                   viewBox="0 0 24 24"
                                   fill="none"
@@ -654,13 +653,13 @@ export default function ArticlesTable({
                             )}
 
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-slate-800">
+                              <p className="break-words font-semibold leading-5 text-slate-800">
                                 {
                                   article.title
                                 }
                               </p>
 
-                              <p className="mt-1 max-w-[320px] truncate text-xs text-slate-400">
+                              <p className="mt-1 max-w-full truncate text-xs text-slate-400">
                                 /
                                 {
                                   article.slug
@@ -668,7 +667,7 @@ export default function ArticlesTable({
                               </p>
 
                               {showStaffFeedback && (
-                                <div className="mt-3 max-w-md rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+                                <div className="mt-3 max-w-full rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
                                   <div className="flex items-start gap-2.5">
                                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
                                       <svg
@@ -695,7 +694,7 @@ export default function ArticlesTable({
                                         Staff Feedback
                                       </p>
 
-                                      <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-red-700/80">
+                                      <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700/80">
                                         {
                                           article.review_notes
                                         }
@@ -709,14 +708,14 @@ export default function ArticlesTable({
                         </td>
 
                         {/* Category */}
-                        <td className="px-6 py-5 text-sm text-slate-600">
+                        <td className="break-words px-4 py-5 align-top text-sm leading-5 text-slate-600">
                           {
                             article.category
                           }
                         </td>
 
                         {/* Status */}
-                        <td className="px-6 py-5 align-top">
+                        <td className="px-4 py-5 align-top">
                           <StatusBadge
                             status={
                               article.status
@@ -733,7 +732,7 @@ export default function ArticlesTable({
                         </td>
 
                         {/* Featured */}
-                        <td className="px-6 py-5 align-top">
+                        <td className="px-4 py-5 align-top">
                           {article.featured ? (
                             <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
                               Yes
@@ -746,14 +745,15 @@ export default function ArticlesTable({
                         </td>
 
                         {/* Created */}
-                        <td className="px-6 py-5 align-top text-sm text-slate-500">
+                        <td className="px-4 py-5 align-top text-sm leading-5 text-slate-500">
                           {new Intl.DateTimeFormat(
                             "en-GB",
                             {
                               day: "2-digit",
                               month:
                                 "short",
-                              year: "numeric",
+                              year:
+                                "numeric",
                             },
                           ).format(
                             new Date(
@@ -763,8 +763,8 @@ export default function ArticlesTable({
                         </td>
 
                         {/* Actions */}
-                        <td className="px-6 py-5 align-top">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-4 py-5 align-top">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
                             {/* Internal Staff */}
                             {!isRepresentative && (
                               <>
