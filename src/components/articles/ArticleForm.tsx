@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  FormEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
+import MediaPicker, {
+  type MediaPickerAsset,
+} from "@/components/media/MediaPicker";
 import { createClient } from "@/lib/supabase/client";
 
 const categories = [
@@ -69,28 +67,39 @@ function createSlug(
       /[^a-z0-9\s-]/g,
       "",
     )
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+    .replace(
+      /\s+/g,
+      "-",
+    )
+    .replace(
+      /-+/g,
+      "-",
+    );
 }
 
 function getFileExtension(
   file: File,
 ) {
-  const extension = file.name
-    .split(".")
-    .pop()
-    ?.toLowerCase();
+  const extension =
+    file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
 
   if (
-    extension === "jpeg"
+    extension ===
+    "jpeg"
   ) {
     return "jpg";
   }
 
   if (
-    extension === "jpg" ||
-    extension === "png" ||
-    extension === "webp"
+    extension ===
+      "jpg" ||
+    extension ===
+      "png" ||
+    extension ===
+      "webp"
   ) {
     return extension;
   }
@@ -133,14 +142,11 @@ function getStoragePathFromPublicUrl(
       return null;
     }
 
-    const path =
+    return decodeURIComponent(
       parsedUrl.pathname.slice(
         markerIndex +
           marker.length,
-      );
-
-    return decodeURIComponent(
-      path,
+      ),
     );
   } catch {
     return null;
@@ -199,28 +205,32 @@ export default function ArticleForm({
     title,
     setTitle,
   ] = useState(
-    article?.title ?? "",
+    article?.title ??
+      "",
   );
 
   const [
     slug,
     setSlug,
   ] = useState(
-    article?.slug ?? "",
+    article?.slug ??
+      "",
   );
 
   const [
     excerpt,
     setExcerpt,
   ] = useState(
-    article?.excerpt ?? "",
+    article?.excerpt ??
+      "",
   );
 
   const [
     content,
     setContent,
   ] = useState(
-    article?.content ?? "",
+    article?.content ??
+      "",
   );
 
   const [
@@ -267,15 +277,27 @@ export default function ArticleForm({
     selectedCoverPreview,
     setSelectedCoverPreview,
   ] =
-    useState<string | null>(
-      null,
-    );
+    useState<
+      string | null
+    >(null);
+
+  const [
+    selectedMediaAsset,
+    setSelectedMediaAsset,
+  ] =
+    useState<
+      MediaPickerAsset | null
+    >(null);
+
+  const [
+    mediaPickerOpen,
+    setMediaPickerOpen,
+  ] = useState(false);
 
   const [
     removeExistingCover,
     setRemoveExistingCover,
-  ] =
-    useState(false);
+  ] = useState(false);
 
   const [
     isSaving,
@@ -293,6 +315,8 @@ export default function ArticleForm({
 
   const coverPreview =
     selectedCoverPreview ??
+    selectedMediaAsset
+      ?.public_url ??
     (!removeExistingCover
       ? existingCoverUrl
       : null);
@@ -329,12 +353,6 @@ export default function ArticleForm({
       isInternalContentAdmin
     );
 
-  /*
-   * Resolve the current platform role.
-   *
-   * This controls the UI, while RLS
-   * remains the final security layer.
-   */
   useEffect(() => {
     let active = true;
 
@@ -344,7 +362,8 @@ export default function ArticleForm({
 
       const {
         data: authData,
-        error: authError,
+        error:
+          authError,
       } =
         await supabase.auth.getUser();
 
@@ -367,7 +386,8 @@ export default function ArticleForm({
 
       const {
         data: roleData,
-        error: roleError,
+        error:
+          roleError,
       } =
         await supabase
           .from(
@@ -381,7 +401,8 @@ export default function ArticleForm({
           )
           .eq(
             "user_id",
-            authData.user.id,
+            authData
+              .user.id,
           )
           .maybeSingle();
 
@@ -391,7 +412,8 @@ export default function ArticleForm({
 
       if (
         roleError ||
-        !roleData?.is_active
+        !roleData
+          ?.is_active
       ) {
         setCurrentRole(
           null,
@@ -420,10 +442,6 @@ export default function ArticleForm({
     };
   }, []);
 
-  /*
-   * Force Representative form state
-   * into the safe publishing state.
-   */
   useEffect(() => {
     if (
       currentRole !==
@@ -432,10 +450,15 @@ export default function ArticleForm({
       return;
     }
 
-    setFeatured(false);
+    setFeatured(
+      false,
+    );
 
     if (!isEditing) {
-      setStatus("draft");
+      setStatus(
+        "draft",
+      );
+
       return;
     }
 
@@ -443,12 +466,9 @@ export default function ArticleForm({
       article?.status ===
       "rejected"
     ) {
-      /*
-       * Rejected articles return to
-       * Draft when the Representative
-       * saves revisions.
-       */
-      setStatus("draft");
+      setStatus(
+        "draft",
+      );
     }
   }, [
     currentRole,
@@ -456,9 +476,6 @@ export default function ArticleForm({
     article?.status,
   ]);
 
-  /*
-   * Cover preview.
-   */
   useEffect(() => {
     if (
       !selectedCoverFile
@@ -495,7 +512,9 @@ export default function ArticleForm({
 
     if (!slugEdited) {
       setSlug(
-        createSlug(value),
+        createSlug(
+          value,
+        ),
       );
     }
   }
@@ -505,7 +524,9 @@ export default function ArticleForm({
       | File
       | undefined,
   ) {
-    setErrorMessage("");
+    setErrorMessage(
+      "",
+    );
 
     if (!file) {
       return;
@@ -538,9 +559,52 @@ export default function ArticleForm({
       file,
     );
 
+    setSelectedMediaAsset(
+      null,
+    );
+
     setRemoveExistingCover(
       false,
     );
+  }
+
+  function handleMediaSelect(
+    assets:
+      MediaPickerAsset[],
+  ) {
+    const asset =
+      assets[0];
+
+    if (!asset) {
+      return;
+    }
+
+    setErrorMessage(
+      "",
+    );
+
+    setSelectedCoverFile(
+      null,
+    );
+
+    setSelectedCoverPreview(
+      null,
+    );
+
+    setSelectedMediaAsset(
+      asset,
+    );
+
+    setRemoveExistingCover(
+      false,
+    );
+
+    if (
+      fileInputRef.current
+    ) {
+      fileInputRef.current.value =
+        "";
+    }
   }
 
   function handleRemoveCover() {
@@ -549,6 +613,10 @@ export default function ArticleForm({
     );
 
     setSelectedCoverPreview(
+      null,
+    );
+
+    setSelectedMediaAsset(
       null,
     );
 
@@ -596,13 +664,16 @@ export default function ArticleForm({
       createClient();
 
     const extension =
-      getFileExtension(file);
+      getFileExtension(
+        file,
+      );
 
     const filePath =
       `${userId}/${crypto.randomUUID()}.${extension}`;
 
     const {
-      error: uploadError,
+      error:
+        uploadError,
     } =
       await supabase.storage
         .from(
@@ -614,12 +685,14 @@ export default function ArticleForm({
           {
             cacheControl:
               "3600",
-
-            upsert: false,
+            upsert:
+              false,
           },
         );
 
-    if (uploadError) {
+    if (
+      uploadError
+    ) {
       throw new Error(
         uploadError.message,
       );
@@ -637,7 +710,6 @@ export default function ArticleForm({
     return {
       publicUrl:
         data.publicUrl,
-
       filePath,
     };
   }
@@ -648,9 +720,13 @@ export default function ArticleForm({
   ) {
     event.preventDefault();
 
-    setErrorMessage("");
+    setErrorMessage(
+      "",
+    );
 
-    if (isRoleLoading) {
+    if (
+      isRoleLoading
+    ) {
       setErrorMessage(
         "Your account permissions are still being checked. Please try again.",
       );
@@ -679,7 +755,9 @@ export default function ArticleForm({
       return;
     }
 
-    if (!title.trim()) {
+    if (
+      !title.trim()
+    ) {
       setErrorMessage(
         "Article title is required.",
       );
@@ -687,7 +765,9 @@ export default function ArticleForm({
       return;
     }
 
-    if (!slug.trim()) {
+    if (
+      !slug.trim()
+    ) {
       setErrorMessage(
         "Article slug is required.",
       );
@@ -695,7 +775,9 @@ export default function ArticleForm({
       return;
     }
 
-    if (!excerpt.trim()) {
+    if (
+      !excerpt.trim()
+    ) {
       setErrorMessage(
         "Article excerpt is required.",
       );
@@ -703,7 +785,9 @@ export default function ArticleForm({
       return;
     }
 
-    if (!content.trim()) {
+    if (
+      !content.trim()
+    ) {
       setErrorMessage(
         "Article content is required.",
       );
@@ -711,7 +795,9 @@ export default function ArticleForm({
       return;
     }
 
-    setIsSaving(true);
+    setIsSaving(
+      true,
+    );
 
     let newlyUploadedPath:
       | string
@@ -722,8 +808,11 @@ export default function ArticleForm({
         createClient();
 
       const {
-        data: { user },
-        error: userError,
+        data: {
+          user,
+        },
+        error:
+          userError,
       } =
         await supabase.auth.getUser();
 
@@ -735,16 +824,13 @@ export default function ArticleForm({
           "Your session could not be verified. Please sign in again.",
         );
 
-        setIsSaving(false);
+        setIsSaving(
+          false,
+        );
 
         return;
       }
 
-      /*
-       * Representative values are
-       * always forced here regardless
-       * of what happened in the UI.
-       */
       const effectiveStatus:
         ArticleStatus =
         isRepresentative
@@ -759,7 +845,9 @@ export default function ArticleForm({
       let coverImageUrl =
         removeExistingCover
           ? null
-          : existingCoverUrl;
+          : selectedMediaAsset
+                ?.public_url ??
+            existingCoverUrl;
 
       if (
         selectedCoverFile
@@ -778,7 +866,9 @@ export default function ArticleForm({
       }
 
       const normalizedSlug =
-        createSlug(slug);
+        createSlug(
+          slug,
+        );
 
       if (
         isEditing &&
@@ -787,7 +877,8 @@ export default function ArticleForm({
         const shouldSetPublishedAt =
           effectiveStatus ===
             "published" &&
-          !article.published_at;
+          !article
+            .published_at;
 
         const {
           error,
@@ -827,7 +918,8 @@ export default function ArticleForm({
                       "published"
                     ? shouldSetPublishedAt
                       ? new Date().toISOString()
-                      : article.published_at
+                      : article
+                          .published_at
                     : null,
 
               updated_by:
@@ -854,20 +946,16 @@ export default function ArticleForm({
               ]);
           }
 
-          if (
+          setErrorMessage(
             error.code ===
-            "23505"
-          ) {
-            setErrorMessage(
-              "This slug is already being used by another article.",
-            );
-          } else {
-            setErrorMessage(
-              error.message,
-            );
-          }
+              "23505"
+              ? "This slug is already being used by another article."
+              : error.message,
+          );
 
-          setIsSaving(false);
+          setIsSaving(
+            false,
+          );
 
           return;
         }
@@ -876,6 +964,7 @@ export default function ArticleForm({
           existingCoverUrl &&
           (
             selectedCoverFile ||
+            selectedMediaAsset ||
             removeExistingCover
           )
         ) {
@@ -909,10 +998,6 @@ export default function ArticleForm({
               cover_image:
                 coverImageUrl,
 
-              /*
-               * Representative
-               * ownership rules.
-               */
               featured:
                 effectiveFeatured,
 
@@ -947,20 +1032,16 @@ export default function ArticleForm({
               ]);
           }
 
-          if (
+          setErrorMessage(
             error.code ===
-            "23505"
-          ) {
-            setErrorMessage(
-              "This slug is already being used by another article.",
-            );
-          } else {
-            setErrorMessage(
-              error.message,
-            );
-          }
+              "23505"
+              ? "This slug is already being used by another article."
+              : error.message,
+          );
 
-          setIsSaving(false);
+          setIsSaving(
+            false,
+          );
 
           return;
         }
@@ -988,14 +1069,17 @@ export default function ArticleForm({
       }
 
       setErrorMessage(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : isEditing
             ? "Something went wrong while updating the article."
             : "Something went wrong while creating the article.",
       );
 
-      setIsSaving(false);
+      setIsSaving(
+        false,
+      );
     }
   }
 
@@ -1011,9 +1095,7 @@ export default function ArticleForm({
       }
       className="grid gap-6 xl:grid-cols-[1fr_340px]"
     >
-      {/* Main Content */}
       <div className="space-y-6">
-        {/* Permission State */}
         {isRoleLoading && (
           <section className="rounded-2xl border border-violet-100 bg-violet-50/50 p-5">
             <p className="text-sm font-semibold text-violet-700">
@@ -1059,7 +1141,6 @@ export default function ArticleForm({
           </section>
         )}
 
-        {/* Article Information */}
         <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm">
           <div>
             <h2 className="text-lg font-bold text-slate-900">
@@ -1175,7 +1256,6 @@ export default function ArticleForm({
           </div>
         </section>
 
-        {/* Content */}
         <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">
             Article Content
@@ -1192,7 +1272,8 @@ export default function ArticleForm({
               event,
             ) =>
               setContent(
-                event.target.value,
+                event.target
+                  .value,
               )
             }
             placeholder="Start writing the article..."
@@ -1204,7 +1285,6 @@ export default function ArticleForm({
           />
         </section>
 
-        {/* Cover Image */}
         <section className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm">
           <div>
             <h2 className="text-lg font-bold text-slate-900">
@@ -1212,10 +1292,11 @@ export default function ArticleForm({
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Select a cover image
-              from your computer.
-              JPG, PNG, or WebP up
-              to 5 MB.
+              Upload a new image
+              from your computer or
+              reuse an existing
+              image from the Media
+              Library.
             </p>
           </div>
 
@@ -1229,18 +1310,24 @@ export default function ArticleForm({
                       `url("${coverPreview}")`,
                   }}
                   role="img"
-                  aria-label="Article cover preview"
+                  aria-label={
+                    selectedMediaAsset
+                      ?.alt_text ||
+                    "Article cover preview"
+                  }
                 />
 
-                <div className="flex flex-col gap-3 border-t border-violet-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4 border-t border-violet-100 p-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-700">
                       {selectedCoverFile
                         ? selectedCoverFile.name
-                        : "Current article cover"}
+                        : selectedMediaAsset
+                          ? selectedMediaAsset.name
+                          : "Current article cover"}
                     </p>
 
-                    {selectedCoverFile && (
+                    {selectedCoverFile ? (
                       <p className="mt-1 text-xs text-slate-400">
                         {(
                           selectedCoverFile.size /
@@ -1249,12 +1336,29 @@ export default function ArticleForm({
                         ).toFixed(
                           2,
                         )}{" "}
-                        MB
+                        MB · Upload
+                        from computer
+                      </p>
+                    ) : selectedMediaAsset ? (
+                      <p className="mt-1 text-xs text-slate-400">
+                        {(
+                          selectedMediaAsset.size_bytes /
+                          1024 /
+                          1024
+                        ).toFixed(
+                          2,
+                        )}{" "}
+                        MB · Media
+                        Library
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Existing cover
                       </p>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={
@@ -1265,7 +1369,24 @@ export default function ArticleForm({
                       }
                       className="inline-flex h-10 items-center justify-center rounded-xl border border-violet-100 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Change Image
+                      Upload from
+                      Computer
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        formDisabled
+                      }
+                      onClick={() =>
+                        setMediaPickerOpen(
+                          true,
+                        )
+                      }
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Choose from
+                      Media Library
                     </button>
 
                     <button
@@ -1284,16 +1405,7 @@ export default function ArticleForm({
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                disabled={
-                  formDisabled
-                }
-                onClick={() =>
-                  fileInputRef.current?.click()
-                }
-                className="flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-6 text-center transition hover:border-violet-300 hover:bg-violet-50/60 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <div className="flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-6 py-8 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm">
                   <svg
                     viewBox="0 0 24 24"
@@ -1317,28 +1429,61 @@ export default function ArticleForm({
                     />
 
                     <path d="m4 18 5-5 3 3 2-2 6 6" />
-
-                    <path d="M18 3v6" />
-
-                    <path d="M15 6h6" />
                   </svg>
                 </div>
 
                 <p className="mt-5 text-sm font-bold text-slate-800">
-                  Select Cover Image
+                  Add Cover Image
                 </p>
 
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Choose an image
+                <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">
+                  Upload an image
                   from your computer
+                  or choose a
+                  reusable asset
+                  already stored in
+                  the Media Library.
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
-                  JPG, PNG or WebP
-                  · Max 5 MB ·
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    disabled={
+                      formDisabled
+                    }
+                    onClick={() =>
+                      fileInputRef.current?.click()
+                    }
+                    className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-violet-700 to-purple-500 px-5 text-sm font-semibold text-white shadow-lg shadow-violet-500/15 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                  >
+                    Upload from
+                    Computer
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      formDisabled
+                    }
+                    onClick={() =>
+                      setMediaPickerOpen(
+                        true,
+                      )
+                    }
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-violet-200 bg-white px-5 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Choose from
+                    Media Library
+                  </button>
+                </div>
+
+                <p className="mt-4 text-xs text-slate-400">
+                  Computer upload:
+                  JPG, PNG or WebP ·
+                  Max 5 MB ·
                   Recommended 16:9
                 </p>
-              </button>
+              </div>
             )}
 
             <input
@@ -1361,12 +1506,33 @@ export default function ArticleForm({
               className="hidden"
             />
           </div>
+
+          <MediaPicker
+            open={
+              mediaPickerOpen
+            }
+            mode="single"
+            isRepresentative={
+              isRepresentative
+            }
+            preferredCategory={
+              isRepresentative
+                ? undefined
+                : "article"
+            }
+            onClose={() =>
+              setMediaPickerOpen(
+                false,
+              )
+            }
+            onSelect={
+              handleMediaSelect
+            }
+          />
         </section>
       </div>
 
-      {/* Sidebar Settings */}
       <aside className="space-y-6">
-        {/* Publishing */}
         <section className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm">
           <h2 className="text-base font-bold text-slate-900">
             Publishing
@@ -1438,7 +1604,9 @@ export default function ArticleForm({
 
                 <select
                   id="status"
-                  value={status}
+                  value={
+                    status
+                  }
                   onChange={(
                     event,
                   ) =>
@@ -1484,8 +1652,7 @@ export default function ArticleForm({
                     event,
                   ) =>
                     setFeatured(
-                      event
-                        .target
+                      event.target
                         .checked,
                     )
                   }
@@ -1504,8 +1671,7 @@ export default function ArticleForm({
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     Mark this
                     article for the
-                    Featured
-                    Articles
+                    Featured Articles
                     section.
                   </p>
                 </div>
@@ -1528,19 +1694,21 @@ export default function ArticleForm({
           )}
         </section>
 
-        {/* Category */}
         <section className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm">
           <h2 className="text-base font-bold text-slate-900">
             Category
           </h2>
 
           <select
-            value={category}
+            value={
+              category
+            }
             onChange={(
               event,
             ) =>
               setCategory(
-                event.target.value,
+                event.target
+                  .value,
               )
             }
             disabled={
@@ -1549,10 +1717,16 @@ export default function ArticleForm({
             className="mt-5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100 disabled:bg-slate-50 disabled:text-slate-500"
           >
             {categories.map(
-              (item) => (
+              (
+                item,
+              ) => (
                 <option
-                  key={item}
-                  value={item}
+                  key={
+                    item
+                  }
+                  value={
+                    item
+                  }
                 >
                   {item}
                 </option>
@@ -1561,7 +1735,6 @@ export default function ArticleForm({
           </select>
         </section>
 
-        {/* Error */}
         {errorMessage && (
           <div
             role="alert"
@@ -1573,12 +1746,13 @@ export default function ArticleForm({
             </p>
 
             <p className="mt-1 text-xs leading-5 text-red-600">
-              {errorMessage}
+              {
+                errorMessage
+              }
             </p>
           </div>
         )}
 
-        {/* Actions */}
         <section className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm">
           <button
             type="submit"

@@ -9,6 +9,9 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import MediaPicker, {
+  type MediaPickerAsset,
+} from "@/components/media/MediaPicker";
 import { createClient } from "@/lib/supabase/client";
 
 export type GalleryCategory =
@@ -49,7 +52,7 @@ export type GalleryAlbumPhotoData = {
   id: string;
   album_id: string;
   image_url: string;
-  storage_path: string;
+  storage_path: string | null;
   alt_text: string;
   sort_order: number;
 };
@@ -73,24 +76,36 @@ const allowedPhotoTypes = [
   "image/webp",
 ];
 
-const maxPhotoSize = 10 * 1024 * 1024;
-const maxPhotosPerAlbum = 20;
+const maxPhotoSize =
+  10 * 1024 * 1024;
 
-function getFileExtension(file: File) {
-  const extension = file.name
-    .split(".")
-    .pop()
-    ?.toLowerCase();
+const maxPhotosPerAlbum =
+  20;
+
+function getFileExtension(
+  file: File,
+) {
+  const extension =
+    file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
 
   if (extension) {
     return extension;
   }
 
-  if (file.type === "image/png") {
+  if (
+    file.type ===
+    "image/png"
+  ) {
     return "png";
   }
 
-  if (file.type === "image/webp") {
+  if (
+    file.type ===
+    "image/webp"
+  ) {
     return "webp";
   }
 
@@ -101,44 +116,75 @@ export default function GalleryAlbumForm({
   album,
   existingPhotos = [],
 }: GalleryAlbumFormProps) {
-  const router = useRouter();
-  const supabase = useMemo(
-    () => createClient(),
-    [],
-  );
+  const router =
+    useRouter();
+
+  const supabase =
+    useMemo(
+      () => createClient(),
+      [],
+    );
 
   const fileInputRef =
-    useRef<HTMLInputElement | null>(null);
+    useRef<HTMLInputElement | null>(
+      null,
+    );
 
-  const isEditing = Boolean(album);
+  const isEditing =
+    Boolean(album);
 
-  const [title, setTitle] = useState(
+  const [
+    title,
+    setTitle,
+  ] = useState(
     album?.title ?? "",
   );
 
-  const [category, setCategory] =
+  const [
+    category,
+    setCategory,
+  ] =
     useState<GalleryCategory>(
-      album?.category ?? "Performance",
+      album?.category ??
+        "Performance",
     );
 
-  const [albumDate, setAlbumDate] =
-    useState(album?.album_date ?? "");
+  const [
+    albumDate,
+    setAlbumDate,
+  ] = useState(
+    album?.album_date ?? "",
+  );
 
-  const [description, setDescription] =
-    useState(album?.description ?? "");
+  const [
+    description,
+    setDescription,
+  ] = useState(
+    album?.description ?? "",
+  );
 
-  const [sortOrder, setSortOrder] =
-    useState(album?.sort_order ?? 0);
+  const [
+    sortOrder,
+    setSortOrder,
+  ] = useState(
+    album?.sort_order ?? 0,
+  );
 
-  const [isPublished, setIsPublished] =
-    useState(
-      album?.is_published ?? false,
-    );
+  const [
+    isPublished,
+    setIsPublished,
+  ] = useState(
+    album?.is_published ??
+      false,
+  );
 
-  const [isFeatured, setIsFeatured] =
-    useState(
-      album?.is_featured ?? false,
-    );
+  const [
+    isFeatured,
+    setIsFeatured,
+  ] = useState(
+    album?.is_featured ??
+      false,
+  );
 
   const [
     selectedFiles,
@@ -151,73 +197,133 @@ export default function GalleryAlbumForm({
   ] = useState<string[]>([]);
 
   const [
+    selectedMediaAssets,
+    setSelectedMediaAssets,
+  ] =
+    useState<
+      MediaPickerAsset[]
+    >([]);
+
+  const [
+    mediaPickerOpen,
+    setMediaPickerOpen,
+  ] = useState(false);
+
+  const [
     removedPhotoIds,
     setRemovedPhotoIds,
   ] = useState<string[]>([]);
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-  const [progressMessage, setProgressMessage] =
-    useState("");
+  const [
+    progressMessage,
+    setProgressMessage,
+  ] = useState("");
 
-  const [currentRole, setCurrentRole] =
-    useState<AdminRole | null>(null);
+  const [
+    currentRole,
+    setCurrentRole,
+  ] =
+    useState<AdminRole | null>(
+      null,
+    );
 
-  const [roleResolved, setRoleResolved] =
-    useState(false);
+  const [
+    roleResolved,
+    setRoleResolved,
+  ] = useState(false);
 
-  const [currentAlbumStatus, setCurrentAlbumStatus] =
+  const [
+    currentAlbumStatus,
+    setCurrentAlbumStatus,
+  ] =
     useState<GalleryAlbumStatus>(
       album?.status ??
-        (album?.is_published
-          ? "published"
-          : "draft"),
+        (
+          album?.is_published
+            ? "published"
+            : "draft"
+        ),
     );
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled =
+      false;
 
     async function loadRoleAndStatus() {
       try {
-        const { data: userData } =
+        const {
+          data: userData,
+        } =
           await supabase.auth.getUser();
 
-        const user = userData.user;
+        const user =
+          userData.user;
 
         if (!user) {
           if (!cancelled) {
-            setCurrentRole(null);
-            setRoleResolved(true);
+            setCurrentRole(
+              null,
+            );
+
+            setRoleResolved(
+              true,
+            );
           }
 
           return;
         }
 
-        const { data: roleData } =
+        const {
+          data: roleData,
+        } =
           await supabase
-            .from("admin_roles")
-            .select("role, is_active")
-            .eq("user_id", user.id)
+            .from(
+              "admin_roles",
+            )
+            .select(
+              "role, is_active",
+            )
+            .eq(
+              "user_id",
+              user.id,
+            )
             .maybeSingle();
 
         if (!cancelled) {
           setCurrentRole(
             roleData?.is_active
-              ? (roleData.role as AdminRole)
+              ? (
+                  roleData.role as AdminRole
+                )
               : null,
           );
         }
 
         if (album?.id) {
-          const { data: latestAlbum } =
+          const {
+            data: latestAlbum,
+          } =
             await supabase
-              .from("gallery_albums")
-              .select("status")
-              .eq("id", album.id)
+              .from(
+                "gallery_albums",
+              )
+              .select(
+                "status",
+              )
+              .eq(
+                "id",
+                album.id,
+              )
               .maybeSingle();
 
           if (
@@ -231,7 +337,9 @@ export default function GalleryAlbumForm({
         }
       } finally {
         if (!cancelled) {
-          setRoleResolved(true);
+          setRoleResolved(
+            true,
+          );
         }
       }
     }
@@ -241,10 +349,14 @@ export default function GalleryAlbumForm({
     return () => {
       cancelled = true;
     };
-  }, [album?.id, supabase]);
+  }, [
+    album?.id,
+    supabase,
+  ]);
 
   const isRepresentative =
-    currentRole === "representative";
+    currentRole ===
+    "representative";
 
   const isRepresentativeLocked =
     isRepresentative &&
@@ -253,22 +365,34 @@ export default function GalleryAlbumForm({
       "under_review",
       "published",
       "archived",
-    ].includes(currentAlbumStatus);
+    ].includes(
+      currentAlbumStatus,
+    );
 
   useEffect(() => {
     const previews =
-      selectedFiles.map((file) =>
-        URL.createObjectURL(file),
+      selectedFiles.map(
+        (file) =>
+          URL.createObjectURL(
+            file,
+          ),
       );
 
-    setSelectedPreviews(previews);
+    setSelectedPreviews(
+      previews,
+    );
 
     return () => {
-      previews.forEach((preview) =>
-        URL.revokeObjectURL(preview),
+      previews.forEach(
+        (preview) =>
+          URL.revokeObjectURL(
+            preview,
+          ),
       );
     };
-  }, [selectedFiles]);
+  }, [
+    selectedFiles,
+  ]);
 
   const visibleExistingPhotos =
     existingPhotos.filter(
@@ -280,14 +404,24 @@ export default function GalleryAlbumForm({
 
   const totalPhotoCount =
     visibleExistingPhotos.length +
-    selectedFiles.length;
+    selectedFiles.length +
+    selectedMediaAssets.length;
+
+  const remainingPhotoSlots =
+    Math.max(
+      maxPhotosPerAlbum -
+        totalPhotoCount,
+      0,
+    );
 
   function handleFileSelection(
     files: FileList | null,
   ) {
     setErrorMessage("");
 
-    if (isRepresentativeLocked) {
+    if (
+      isRepresentativeLocked
+    ) {
       setErrorMessage(
         "This album is locked and cannot be edited while it is under review or already published.",
       );
@@ -302,9 +436,12 @@ export default function GalleryAlbumForm({
     const incoming =
       Array.from(files);
 
-    const validFiles: File[] = [];
+    const validFiles: File[] =
+      [];
 
-    for (const file of incoming) {
+    for (
+      const file of incoming
+    ) {
       if (
         !allowedPhotoTypes.includes(
           file.type,
@@ -317,7 +454,10 @@ export default function GalleryAlbumForm({
         continue;
       }
 
-      if (file.size > maxPhotoSize) {
+      if (
+        file.size >
+        maxPhotoSize
+      ) {
         setErrorMessage(
           `${file.name} is larger than 10 MB.`,
         );
@@ -325,96 +465,218 @@ export default function GalleryAlbumForm({
         continue;
       }
 
-      validFiles.push(file);
-    }
-
-    setSelectedFiles((current) => {
-      const combined = [
-        ...current,
-        ...validFiles,
-      ];
-
-      const unique =
-        combined.filter(
-          (file, index, array) =>
-            array.findIndex(
-              (candidate) =>
-                candidate.name ===
-                  file.name &&
-                candidate.size ===
-                  file.size &&
-                candidate.lastModified ===
-                  file.lastModified,
-            ) === index,
-        );
-
-      const availableSlots =
-        maxPhotosPerAlbum -
-        visibleExistingPhotos.length;
-
-      if (
-        unique.length >
-        availableSlots
-      ) {
-        setErrorMessage(
-          `An album can contain a maximum of ${maxPhotosPerAlbum} photos.`,
-        );
-      }
-
-      return unique.slice(
-        0,
-        Math.max(
-          availableSlots,
-          0,
-        ),
+      validFiles.push(
+        file,
       );
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
     }
+
+    setSelectedFiles(
+      (current) => {
+        const combined = [
+          ...current,
+          ...validFiles,
+        ];
+
+        const unique =
+          combined.filter(
+            (
+              file,
+              index,
+              array,
+            ) =>
+              array.findIndex(
+                (
+                  candidate,
+                ) =>
+                  candidate.name ===
+                    file.name &&
+                  candidate.size ===
+                    file.size &&
+                  candidate.lastModified ===
+                    file.lastModified,
+              ) === index,
+          );
+
+        const availableSlots =
+          maxPhotosPerAlbum -
+          visibleExistingPhotos.length -
+          selectedMediaAssets.length;
+
+        if (
+          unique.length >
+          availableSlots
+        ) {
+          setErrorMessage(
+            `An album can contain a maximum of ${maxPhotosPerAlbum} photos.`,
+          );
+        }
+
+        return unique.slice(
+          0,
+          Math.max(
+            availableSlots,
+            0,
+          ),
+        );
+      },
+    );
+
+    if (
+      fileInputRef.current
+    ) {
+      fileInputRef.current.value =
+        "";
+    }
+  }
+
+  function handleMediaSelect(
+    assets:
+      MediaPickerAsset[],
+  ) {
+    if (
+      isRepresentativeLocked
+    ) {
+      return;
+    }
+
+    setErrorMessage("");
+
+    setSelectedMediaAssets(
+      (current) => {
+        const combined = [
+          ...current,
+          ...assets,
+        ];
+
+        const unique =
+          combined.filter(
+            (
+              asset,
+              index,
+              array,
+            ) =>
+              array.findIndex(
+                (
+                  candidate,
+                ) =>
+                  candidate.id ===
+                  asset.id,
+              ) === index,
+          );
+
+        const availableSlots =
+          maxPhotosPerAlbum -
+          visibleExistingPhotos.length -
+          selectedFiles.length;
+
+        if (
+          unique.length >
+          availableSlots
+        ) {
+          setErrorMessage(
+            `An album can contain a maximum of ${maxPhotosPerAlbum} photos.`,
+          );
+        }
+
+        return unique.slice(
+          0,
+          Math.max(
+            availableSlots,
+            0,
+          ),
+        );
+      },
+    );
   }
 
   function removeSelectedFile(
     index: number,
   ) {
-    if (isRepresentativeLocked) {
+    if (
+      isRepresentativeLocked
+    ) {
       return;
     }
 
-    setSelectedFiles((current) =>
-      current.filter(
-        (_, fileIndex) =>
-          fileIndex !== index,
-      ),
+    setSelectedFiles(
+      (current) =>
+        current.filter(
+          (
+            _,
+            fileIndex,
+          ) =>
+            fileIndex !==
+            index,
+        ),
+    );
+  }
+
+  function removeSelectedMediaAsset(
+    assetId: string,
+  ) {
+    if (
+      isRepresentativeLocked
+    ) {
+      return;
+    }
+
+    setSelectedMediaAssets(
+      (current) =>
+        current.filter(
+          (asset) =>
+            asset.id !==
+            assetId,
+        ),
     );
   }
 
   function clearSelectedFiles() {
-    if (isRepresentativeLocked) {
+    if (
+      isRepresentativeLocked
+    ) {
       return;
     }
 
     setSelectedFiles([]);
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (
+      fileInputRef.current
+    ) {
+      fileInputRef.current.value =
+        "";
     }
+  }
+
+  function clearSelectedMediaAssets() {
+    if (
+      isRepresentativeLocked
+    ) {
+      return;
+    }
+
+    setSelectedMediaAssets(
+      [],
+    );
   }
 
   function toggleRemoveExistingPhoto(
     photoId: string,
   ) {
-    if (isRepresentativeLocked) {
+    if (
+      isRepresentativeLocked
+    ) {
       return;
     }
 
     setRemovedPhotoIds(
       (current) =>
-        current.includes(photoId)
+        current.includes(
+          photoId,
+        )
           ? current.filter(
               (id) =>
-                id !== photoId,
+                id !==
+                photoId,
             )
           : [
               ...current,
@@ -426,14 +688,21 @@ export default function GalleryAlbumForm({
   async function removeStorageFiles(
     storagePaths: string[],
   ) {
-    if (storagePaths.length === 0) {
+    if (
+      storagePaths.length ===
+      0
+    ) {
       return;
     }
 
     const { error } =
       await supabase.storage
-        .from("gallery-photos")
-        .remove(storagePaths);
+        .from(
+          "gallery-photos",
+        )
+        .remove(
+          storagePaths,
+        );
 
     if (error) {
       console.error(
@@ -448,30 +717,42 @@ export default function GalleryAlbumForm({
     userId: string,
   ) {
     const extension =
-      getFileExtension(file);
+      getFileExtension(
+        file,
+      );
 
     const storagePath =
       `${userId}/${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } =
+    const {
+      error: uploadError,
+    } =
       await supabase.storage
-        .from("gallery-photos")
+        .from(
+          "gallery-photos",
+        )
         .upload(
           storagePath,
           file,
           {
-            cacheControl: "3600",
-            upsert: false,
+            cacheControl:
+              "3600",
+            upsert:
+              false,
           },
         );
 
-    if (uploadError) {
+    if (
+      uploadError
+    ) {
       throw uploadError;
     }
 
     const { data } =
       supabase.storage
-        .from("gallery-photos")
+        .from(
+          "gallery-photos",
+        )
         .getPublicUrl(
           storagePath,
         );
@@ -495,7 +776,8 @@ export default function GalleryAlbumForm({
     try {
       for (
         let index = 0;
-        index < selectedFiles.length;
+        index <
+        selectedFiles.length;
         index++
       ) {
         setProgressMessage(
@@ -504,14 +786,18 @@ export default function GalleryAlbumForm({
 
         const result =
           await uploadFile(
-            selectedFiles[index],
+            selectedFiles[
+              index
+            ],
             userId,
           );
 
         uploaded.push({
           ...result,
           file:
-            selectedFiles[index],
+            selectedFiles[
+              index
+            ],
         });
       }
 
@@ -526,6 +812,88 @@ export default function GalleryAlbumForm({
 
       throw error;
     }
+  }
+
+  function createNewPhotoRows(
+    albumId: string,
+    uploaded: Array<{
+      imageUrl: string;
+      storagePath: string;
+      file: File;
+    }>,
+    startingOrder: number,
+  ) {
+    const uploadedRows =
+      uploaded.map(
+        (
+          item,
+          index,
+        ) => ({
+          album_id:
+            albumId,
+
+          image_url:
+            item.imageUrl,
+
+          storage_path:
+            item.storagePath,
+
+          media_asset_id:
+            null,
+
+          alt_text:
+            `${title.trim()} photo ${
+              startingOrder +
+              index +
+              1
+            }`,
+
+          sort_order:
+            startingOrder +
+            index,
+        }),
+      );
+
+    const mediaStartOrder =
+      startingOrder +
+      uploaded.length;
+
+    const mediaRows =
+      selectedMediaAssets.map(
+        (
+          asset,
+          index,
+        ) => ({
+          album_id:
+            albumId,
+
+          image_url:
+            asset.public_url,
+
+          storage_path:
+            null,
+
+          media_asset_id:
+            asset.id,
+
+          alt_text:
+            asset.alt_text ||
+            `${title.trim()} photo ${
+              mediaStartOrder +
+              index +
+              1
+            }`,
+
+          sort_order:
+            mediaStartOrder +
+            index,
+        }),
+      );
+
+    return [
+      ...uploadedRows,
+      ...mediaRows,
+    ];
   }
 
   async function handleCreate(
@@ -549,48 +917,52 @@ export default function GalleryAlbumForm({
       const {
         data: createdAlbum,
         error: albumError,
-      } = await supabase
-        .from("gallery_albums")
-        .insert({
-          title:
-            title.trim(),
+      } =
+        await supabase
+          .from(
+            "gallery_albums",
+          )
+          .insert({
+            title:
+              title.trim(),
 
-          category,
+            category,
 
-          album_date:
-            albumDate || null,
+            album_date:
+              albumDate ||
+              null,
 
-          description:
-            description.trim(),
+            description:
+              description.trim(),
 
-          is_published:
-            representativeAccount
-              ? false
-              : isPublished,
+            is_published:
+              representativeAccount
+                ? false
+                : isPublished,
 
-          is_featured:
-            representativeAccount
-              ? false
-              : isFeatured,
+            is_featured:
+              representativeAccount
+                ? false
+                : isFeatured,
 
-          status:
-            representativeAccount
-              ? "draft"
-              : isPublished
-                ? "published"
-                : "draft",
+            status:
+              representativeAccount
+                ? "draft"
+                : isPublished
+                  ? "published"
+                  : "draft",
 
-          sort_order:
-            sortOrder,
+            sort_order:
+              sortOrder,
 
-          created_by:
-            userId,
+            created_by:
+              userId,
 
-          updated_by:
-            userId,
-        })
-        .select("id")
-        .single();
+            updated_by:
+              userId,
+          })
+          .select("id")
+          .single();
 
       if (
         albumError ||
@@ -608,43 +980,45 @@ export default function GalleryAlbumForm({
         createdAlbum.id;
 
       const photoRows =
-        uploaded.map(
-          (item, index) => ({
-            album_id:
-              createdAlbum.id,
-
-            image_url:
-              item.imageUrl,
-
-            storage_path:
-              item.storagePath,
-
-            alt_text:
-              `${title.trim()} photo ${index + 1}`,
-
-            sort_order:
-              index,
-          }),
+        createNewPhotoRows(
+          createdAlbum.id,
+          uploaded,
+          0,
         );
 
-      setProgressMessage(
-        "Saving album photos...",
-      );
+      if (
+        photoRows.length >
+        0
+      ) {
+        setProgressMessage(
+          "Saving album photos...",
+        );
 
-      const { error: photosError } =
-        await supabase
-          .from(
-            "gallery_album_photos",
-          )
-          .insert(photoRows);
+        const {
+          error: photosError,
+        } =
+          await supabase
+            .from(
+              "gallery_album_photos",
+            )
+            .insert(
+              photoRows,
+            );
 
-      if (photosError) {
-        throw photosError;
+        if (
+          photosError
+        ) {
+          throw photosError;
+        }
       }
     } catch (error) {
-      if (createdAlbumId) {
+      if (
+        createdAlbumId
+      ) {
         await supabase
-          .from("gallery_albums")
+          .from(
+            "gallery_albums",
+          )
           .delete()
           .eq(
             "id",
@@ -677,7 +1051,9 @@ export default function GalleryAlbumForm({
         "under_review",
         "published",
         "archived",
-      ].includes(currentAlbumStatus)
+      ].includes(
+        currentAlbumStatus,
+      )
     ) {
       throw new Error(
         "This album is locked and cannot be edited in its current status.",
@@ -694,9 +1070,13 @@ export default function GalleryAlbumForm({
         "Updating album...",
       );
 
-      const { error: albumError } =
+      const {
+        error: albumError,
+      } =
         await supabase
-          .from("gallery_albums")
+          .from(
+            "gallery_albums",
+          )
           .update({
             title:
               title.trim(),
@@ -704,7 +1084,8 @@ export default function GalleryAlbumForm({
             category,
 
             album_date:
-              albumDate || null,
+              albumDate ||
+              null,
 
             description:
               description.trim(),
@@ -742,15 +1123,23 @@ export default function GalleryAlbumForm({
             updated_at:
               new Date().toISOString(),
           })
-          .eq("id", album.id);
+          .eq(
+            "id",
+            album.id,
+          );
 
-      if (albumError) {
+      if (
+        albumError
+      ) {
         throw albumError;
       }
 
       const maxExistingOrder =
         visibleExistingPhotos.reduce(
-          (highest, photo) =>
+          (
+            highest,
+            photo,
+          ) =>
             Math.max(
               highest,
               photo.sort_order,
@@ -758,34 +1147,25 @@ export default function GalleryAlbumForm({
           -1,
         );
 
-      if (uploaded.length > 0) {
-        const newPhotoRows =
-          uploaded.map(
-            (item, index) => ({
-              album_id:
-                album.id,
+      const startingOrder =
+        maxExistingOrder +
+        1;
 
-              image_url:
-                item.imageUrl,
+      const newPhotoRows =
+        createNewPhotoRows(
+          album.id,
+          uploaded,
+          startingOrder,
+        );
 
-              storage_path:
-                item.storagePath,
-
-              alt_text:
-                `${title.trim()} photo ${
-                  maxExistingOrder +
-                  index +
-                  2
-                }`,
-
-              sort_order:
-                maxExistingOrder +
-                index +
-                1,
-            }),
-          );
-
-        const { error: insertError } =
+      if (
+        newPhotoRows.length >
+        0
+      ) {
+        const {
+          error:
+            insertError,
+        } =
           await supabase
             .from(
               "gallery_album_photos",
@@ -794,7 +1174,9 @@ export default function GalleryAlbumForm({
               newPhotoRows,
             );
 
-        if (insertError) {
+        if (
+          insertError
+        ) {
           throw insertError;
         }
       }
@@ -811,7 +1193,10 @@ export default function GalleryAlbumForm({
               ),
           );
 
-        const { error: deleteError } =
+        const {
+          error:
+            deleteError,
+        } =
           await supabase
             .from(
               "gallery_album_photos",
@@ -822,15 +1207,29 @@ export default function GalleryAlbumForm({
               removedPhotoIds,
             );
 
-        if (deleteError) {
+        if (
+          deleteError
+        ) {
           throw deleteError;
         }
 
+        const galleryStoragePaths =
+          photosToRemove
+            .map(
+              (photo) =>
+                photo.storage_path,
+            )
+            .filter(
+              (
+                storagePath,
+              ): storagePath is string =>
+                Boolean(
+                  storagePath,
+                ),
+            );
+
         await removeStorageFiles(
-          photosToRemove.map(
-            (photo) =>
-              photo.storage_path,
-          ),
+          galleryStoragePaths,
         );
       }
     } catch (error) {
@@ -846,18 +1245,23 @@ export default function GalleryAlbumForm({
   }
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    if (isSubmitting) {
+    if (
+      isSubmitting
+    ) {
       return;
     }
 
     setErrorMessage("");
     setProgressMessage("");
 
-    if (!roleResolved) {
+    if (
+      !roleResolved
+    ) {
       setErrorMessage(
         "Your account permissions are still loading. Please try again in a moment.",
       );
@@ -865,7 +1269,9 @@ export default function GalleryAlbumForm({
       return;
     }
 
-    if (isRepresentativeLocked) {
+    if (
+      isRepresentativeLocked
+    ) {
       setErrorMessage(
         "This album is locked and cannot be edited in its current status.",
       );
@@ -873,7 +1279,9 @@ export default function GalleryAlbumForm({
       return;
     }
 
-    if (!title.trim()) {
+    if (
+      !title.trim()
+    ) {
       setErrorMessage(
         "Album title is required.",
       );
@@ -881,7 +1289,10 @@ export default function GalleryAlbumForm({
       return;
     }
 
-    if (totalPhotoCount === 0) {
+    if (
+      totalPhotoCount ===
+      0
+    ) {
       setErrorMessage(
         "An album must contain at least one photo.",
       );
@@ -901,7 +1312,9 @@ export default function GalleryAlbumForm({
     }
 
     if (
-      !Number.isInteger(sortOrder) ||
+      !Number.isInteger(
+        sortOrder,
+      ) ||
       sortOrder < 0
     ) {
       setErrorMessage(
@@ -911,7 +1324,9 @@ export default function GalleryAlbumForm({
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(
+      true,
+    );
 
     try {
       const {
@@ -929,17 +1344,26 @@ export default function GalleryAlbumForm({
         );
       }
 
-      const { data: roleData } =
+      const {
+        data: roleData,
+      } =
         await supabase
-          .from("admin_roles")
-          .select("role, is_active")
+          .from(
+            "admin_roles",
+          )
+          .select(
+            "role, is_active",
+          )
           .eq(
             "user_id",
-            userData.user.id,
+            userData
+              .user.id,
           )
           .maybeSingle();
 
-      if (!roleData?.is_active) {
+      if (
+        !roleData?.is_active
+      ) {
         throw new Error(
           "Your account does not have an active Gallery role.",
         );
@@ -961,7 +1385,10 @@ export default function GalleryAlbumForm({
         );
       }
 
-      router.push("/gallery");
+      router.push(
+        "/gallery",
+      );
+
       router.refresh();
     } catch (error) {
       console.error(
@@ -970,24 +1397,33 @@ export default function GalleryAlbumForm({
       );
 
       setErrorMessage(
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : "Unable to save this Gallery album.",
       );
     } finally {
-      setIsSubmitting(false);
-      setProgressMessage("");
+      setIsSubmitting(
+        false,
+      );
+
+      setProgressMessage(
+        "",
+      );
     }
   }
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={
+        handleSubmit
+      }
       className="space-y-6"
     >
       {!roleResolved && (
         <div className="rounded-2xl border border-violet-100 bg-violet-50 px-5 py-4 text-sm font-semibold text-violet-700">
-          Loading account permissions...
+          Loading account
+          permissions...
         </div>
       )}
 
@@ -998,7 +1434,11 @@ export default function GalleryAlbumForm({
           </p>
 
           <p className="mt-1 text-xs leading-5 text-blue-700/80">
-            This album cannot be edited while it is under review, published, or archived.
+            This album cannot
+            be edited while it
+            is under review,
+            published, or
+            archived.
           </p>
         </div>
       )}
@@ -1006,14 +1446,18 @@ export default function GalleryAlbumForm({
       {/* Error */}
       {errorMessage && (
         <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
-          {errorMessage}
+          {
+            errorMessage
+          }
         </div>
       )}
 
       {/* Progress */}
       {progressMessage && (
         <div className="rounded-2xl border border-violet-100 bg-violet-50 px-5 py-4 text-sm font-semibold text-violet-700">
-          {progressMessage}
+          {
+            progressMessage
+          }
         </div>
       )}
 
@@ -1028,9 +1472,10 @@ export default function GalleryAlbumForm({
         </h2>
 
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          One album can contain multiple
-          photographs from the same
-          moment or event.
+          One album can
+          contain multiple
+          photographs from the
+          same moment or event.
         </p>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
@@ -1047,9 +1492,12 @@ export default function GalleryAlbumForm({
               id="album-title"
               type="text"
               value={title}
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setTitle(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               placeholder="7ICONS Live Performance"
@@ -1073,12 +1521,16 @@ export default function GalleryAlbumForm({
 
             <select
               id="album-category"
-              value={category}
+              value={
+                category
+              }
               disabled={
                 isSubmitting ||
                 isRepresentativeLocked
               }
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setCategory(
                   event.target
                     .value as GalleryCategory,
@@ -1089,8 +1541,12 @@ export default function GalleryAlbumForm({
               {categories.map(
                 (item) => (
                   <option
-                    key={item}
-                    value={item}
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
                   >
                     {item}
                   </option>
@@ -1111,14 +1567,19 @@ export default function GalleryAlbumForm({
             <input
               id="album-date"
               type="date"
-              value={albumDate}
+              value={
+                albumDate
+              }
               disabled={
                 isSubmitting ||
                 isRepresentativeLocked
               }
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setAlbumDate(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-4 text-sm text-slate-800 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
@@ -1139,15 +1600,20 @@ export default function GalleryAlbumForm({
               type="number"
               min="0"
               step="1"
-              value={sortOrder}
+              value={
+                sortOrder
+              }
               disabled={
                 isSubmitting ||
                 isRepresentativeLocked
               }
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setSortOrder(
                   Number(
-                    event.target.value,
+                    event.target
+                      .value,
                   ),
                 )
               }
@@ -1167,14 +1633,19 @@ export default function GalleryAlbumForm({
 
           <textarea
             id="album-description"
-            value={description}
+            value={
+              description
+            }
             disabled={
               isSubmitting ||
               isRepresentativeLocked
             }
-            onChange={(event) =>
+            onChange={(
+              event,
+            ) =>
               setDescription(
-                event.target.value,
+                event.target
+                  .value,
               )
             }
             rows={5}
@@ -1197,21 +1668,29 @@ export default function GalleryAlbumForm({
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Add up to{" "}
-              {maxPhotosPerAlbum} JPG,
-              PNG, or WebP images.
-              Maximum 10 MB each.
+              Upload images
+              from your computer
+              or reuse existing
+              assets from the
+              Media Library.
             </p>
           </div>
 
           <div className="rounded-full bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">
-            {totalPhotoCount} /{" "}
-            {maxPhotosPerAlbum}
+            {
+              totalPhotoCount
+            }{" "}
+            /{" "}
+            {
+              maxPhotosPerAlbum
+            }
           </div>
         </div>
 
         <input
-          ref={fileInputRef}
+          ref={
+            fileInputRef
+          }
           type="file"
           accept="image/jpeg,image/png,image/webp"
           multiple
@@ -1220,45 +1699,117 @@ export default function GalleryAlbumForm({
             isRepresentativeLocked
           }
           className="hidden"
-          onChange={(event) =>
+          onChange={(
+            event,
+          ) =>
             handleFileSelection(
-              event.target.files,
+              event.target
+                .files,
             )
           }
         />
 
-        <button
-          type="button"
-          onClick={() =>
-            fileInputRef.current?.click()
-          }
-          disabled={
-            isSubmitting ||
-            isRepresentativeLocked ||
-            totalPhotoCount >=
-              maxPhotosPerAlbum
-          }
-          className="mt-6 flex min-h-[180px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-6 py-8 text-center transition hover:border-violet-300 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl font-semibold text-violet-600 shadow-sm">
-            +
-          </div>
+        {/* Photo Sources */}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() =>
+              fileInputRef.current?.click()
+            }
+            disabled={
+              isSubmitting ||
+              isRepresentativeLocked ||
+              totalPhotoCount >=
+                maxPhotosPerAlbum
+            }
+            className="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-6 py-7 text-center transition hover:border-violet-300 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl font-semibold text-violet-600 shadow-sm">
+              +
+            </div>
 
-          <p className="mt-4 text-sm font-semibold text-violet-700">
-            Add Photos
-          </p>
+            <p className="mt-4 text-sm font-semibold text-violet-700">
+              Upload from
+              Computer
+            </p>
 
-          <p className="mt-2 text-xs text-slate-400">
-            You can select multiple
-            images at once.
-          </p>
-        </button>
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              JPG, PNG or
+              WebP. Maximum
+              10 MB each.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMediaPickerOpen(
+                true,
+              )
+            }
+            disabled={
+              isSubmitting ||
+              isRepresentativeLocked ||
+              totalPhotoCount >=
+                maxPhotosPerAlbum
+            }
+            className="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/30 px-6 py-7 text-center transition hover:border-purple-300 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className="h-6 w-6"
+              >
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="16"
+                  rx="2"
+                />
+
+                <circle
+                  cx="9"
+                  cy="9"
+                  r="2"
+                />
+
+                <path d="m4 18 5-5 3 3 2-2 6 6" />
+              </svg>
+            </div>
+
+            <p className="mt-4 text-sm font-semibold text-violet-700">
+              Choose from
+              Media Library
+            </p>
+
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              Reuse existing
+              media without
+              uploading a
+              duplicate file.
+            </p>
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-slate-400">
+          {
+            remainingPhotoSlots
+          }{" "}
+          photo slots
+          remaining.
+        </p>
 
         {/* Existing Photos */}
-        {existingPhotos.length > 0 && (
+        {existingPhotos.length >
+          0 && (
           <div className="mt-7">
             <p className="text-sm font-bold text-slate-700">
-              Current Album Photos
+              Current Album
+              Photos
             </p>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1271,13 +1822,17 @@ export default function GalleryAlbumForm({
 
                   return (
                     <div
-                      key={photo.id}
+                      key={
+                        photo.id
+                      }
                       className={[
                         "overflow-hidden rounded-2xl border bg-white transition",
                         removed
                           ? "border-red-200 opacity-50"
                           : "border-violet-100",
-                      ].join(" ")}
+                      ].join(
+                        " ",
+                      )}
                     >
                       <div
                         role="img"
@@ -1287,7 +1842,8 @@ export default function GalleryAlbumForm({
                         }
                         className="aspect-[4/3] bg-slate-100 bg-cover bg-center"
                         style={{
-                          backgroundImage: `url("${photo.image_url}")`,
+                          backgroundImage:
+                            `url("${photo.image_url}")`,
                         }}
                       />
 
@@ -1313,7 +1869,9 @@ export default function GalleryAlbumForm({
                             removed
                               ? "text-violet-600"
                               : "text-red-500 hover:text-red-700",
-                          ].join(" ")}
+                          ].join(
+                            " ",
+                          )}
                         >
                           {removed
                             ? "Undo Remove"
@@ -1328,14 +1886,30 @@ export default function GalleryAlbumForm({
           </div>
         )}
 
-        {/* New Photos */}
-        {selectedFiles.length > 0 && (
+        {/* Computer Uploads */}
+        {selectedFiles.length >
+          0 && (
           <div className="mt-7">
             <div className="flex items-center justify-between gap-4">
-              <p className="text-sm font-bold text-slate-700">
-                New Photos (
-                {selectedFiles.length})
-              </p>
+              <div>
+                <p className="text-sm font-bold text-slate-700">
+                  Computer
+                  Uploads (
+                  {
+                    selectedFiles.length
+                  }
+                  )
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  These files
+                  will be uploaded
+                  to Gallery
+                  storage when
+                  the album is
+                  saved.
+                </p>
+              </div>
 
               <button
                 type="button"
@@ -1348,13 +1922,16 @@ export default function GalleryAlbumForm({
                 }
                 className="text-xs font-semibold text-red-500 hover:text-red-700"
               >
-                Clear New Photos
+                Clear
               </button>
             </div>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {selectedFiles.map(
-                (file, index) => (
+                (
+                  file,
+                  index,
+                ) => (
                   <div
                     key={`${file.name}-${file.lastModified}`}
                     className="overflow-hidden rounded-2xl border border-violet-100 bg-white"
@@ -1362,13 +1939,16 @@ export default function GalleryAlbumForm({
                     <div
                       className="aspect-[4/3] bg-slate-100 bg-cover bg-center"
                       style={{
-                        backgroundImage: `url("${selectedPreviews[index]}")`,
+                        backgroundImage:
+                          `url("${selectedPreviews[index]}")`,
                       }}
                     />
 
                     <div className="p-3">
                       <p className="truncate text-sm font-semibold text-slate-700">
-                        {file.name}
+                        {
+                          file.name
+                        }
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
@@ -1376,8 +1956,10 @@ export default function GalleryAlbumForm({
                           file.size /
                           1024 /
                           1024
-                        ).toFixed(2)}{" "}
-                        MB
+                        ).toFixed(
+                          2,
+                        )}{" "}
+                        MB · Computer
                       </p>
 
                       <button
@@ -1402,6 +1984,135 @@ export default function GalleryAlbumForm({
             </div>
           </div>
         )}
+
+        {/* Media Library Photos */}
+        {selectedMediaAssets.length >
+          0 && (
+          <div className="mt-7">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-slate-700">
+                  Media Library
+                  Photos (
+                  {
+                    selectedMediaAssets.length
+                  }
+                  )
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  These assets
+                  will be reused
+                  without
+                  uploading new
+                  files.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  clearSelectedMediaAssets
+                }
+                disabled={
+                  isSubmitting ||
+                  isRepresentativeLocked
+                }
+                className="text-xs font-semibold text-red-500 hover:text-red-700"
+              >
+                Clear
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {selectedMediaAssets.map(
+                (asset) => (
+                  <div
+                    key={
+                      asset.id
+                    }
+                    className="overflow-hidden rounded-2xl border border-violet-100 bg-white"
+                  >
+                    <div
+                      role="img"
+                      aria-label={
+                        asset.alt_text ||
+                        asset.name
+                      }
+                      className="aspect-[4/3] bg-slate-100 bg-cover bg-center"
+                      style={{
+                        backgroundImage:
+                          `url("${asset.public_url}")`,
+                      }}
+                    />
+
+                    <div className="p-3">
+                      <p className="truncate text-sm font-semibold text-slate-700">
+                        {
+                          asset.name
+                        }
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {(
+                          asset.size_bytes /
+                          1024 /
+                          1024
+                        ).toFixed(
+                          2,
+                        )}{" "}
+                        MB · Media
+                        Library
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeSelectedMediaAsset(
+                            asset.id,
+                          )
+                        }
+                        disabled={
+                          isSubmitting ||
+                          isRepresentativeLocked
+                        }
+                        className="mt-3 text-xs font-semibold text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        )}
+
+        <MediaPicker
+          open={
+            mediaPickerOpen
+          }
+          mode="multiple"
+          maxSelection={
+            remainingPhotoSlots
+          }
+          isRepresentative={
+            isRepresentative
+          }
+          preferredCategory={
+            isRepresentative
+              ? undefined
+              : "gallery"
+          }
+          onClose={() =>
+            setMediaPickerOpen(
+              false,
+            )
+          }
+          onSelect={
+            handleMediaSelect
+          }
+        />
       </section>
 
       {/* Publishing */}
@@ -1454,7 +2165,8 @@ export default function GalleryAlbumForm({
               </div>
 
               <span className="inline-flex w-fit rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-semibold text-violet-700">
-                Staff approval required
+                Staff approval
+                required
               </span>
             </div>
           </div>
@@ -1467,17 +2179,26 @@ export default function GalleryAlbumForm({
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Show this album on the public Gallery.
+                  Show this album
+                  on the public
+                  Gallery.
                 </p>
               </div>
 
               <input
                 type="checkbox"
-                checked={isPublished}
-                disabled={isSubmitting}
-                onChange={(event) =>
+                checked={
+                  isPublished
+                }
+                disabled={
+                  isSubmitting
+                }
+                onChange={(
+                  event,
+                ) =>
                   setIsPublished(
-                    event.target.checked,
+                    event.target
+                      .checked,
                   )
                 }
                 className="h-4 w-4 accent-violet-600"
@@ -1491,17 +2212,26 @@ export default function GalleryAlbumForm({
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Mark this album as a Gallery highlight.
+                  Mark this album
+                  as a Gallery
+                  highlight.
                 </p>
               </div>
 
               <input
                 type="checkbox"
-                checked={isFeatured}
-                disabled={isSubmitting}
-                onChange={(event) =>
+                checked={
+                  isFeatured
+                }
+                disabled={
+                  isSubmitting
+                }
+                onChange={(
+                  event,
+                ) =>
                   setIsFeatured(
-                    event.target.checked,
+                    event.target
+                      .checked,
                   )
                 }
                 className="h-4 w-4 accent-violet-600"
@@ -1516,9 +2246,13 @@ export default function GalleryAlbumForm({
         <button
           type="button"
           onClick={() =>
-            router.push("/gallery")
+            router.push(
+              "/gallery",
+            )
           }
-          disabled={isSubmitting}
+          disabled={
+            isSubmitting
+          }
           className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
         >
           Cancel

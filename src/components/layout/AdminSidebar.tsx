@@ -62,6 +62,7 @@ const navigation: NavigationItem[] = [
           height="18"
           rx="2"
         />
+
         <path d="M8 8h8" />
         <path d="M8 12h8" />
         <path d="M8 16h5" />
@@ -314,11 +315,12 @@ const navigation: NavigationItem[] = [
 function getInitials(
   displayName: string,
 ) {
-  const words = displayName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+  const words =
+    displayName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2);
 
   return (
     words
@@ -341,11 +343,12 @@ export default function AdminSidebar({
     usePathname();
 
   const visibleNavigation =
-    navigation.filter((item) =>
-      hasPermission(
-        role,
-        item.permission,
-      ),
+    navigation.filter(
+      (item) =>
+        hasPermission(
+          role,
+          item.permission,
+        ),
     );
 
   const canViewSettings =
@@ -355,7 +358,9 @@ export default function AdminSidebar({
     );
 
   const initials =
-    getInitials(displayName);
+    getInitials(
+      displayName,
+    );
 
   const isActive = (
     href: string,
@@ -387,15 +392,15 @@ export default function AdminSidebar({
         </Link>
       </div>
 
-      {/* Navigation Area */}
+      {/* Main Sidebar */}
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Scrollable Navigation Only */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <p className="mb-3 px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+        {/* Navigation - intentionally not scrollable */}
+        <div className="min-h-0 flex-1 overflow-hidden px-4 py-3">
+          <p className="mb-2 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
             Management
           </p>
 
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {visibleNavigation.map(
               (item) => {
                 const active =
@@ -405,26 +410,34 @@ export default function AdminSidebar({
 
                 return (
                   <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                    key={
+                      item.href
+                    }
+                    href={
+                      item.href
+                    }
+                    className={`flex items-center gap-3 rounded-xl px-4 py-1.5 text-sm font-semibold transition ${
                       active
                         ? "bg-gradient-to-r from-violet-700 to-purple-500 text-white shadow-lg shadow-violet-500/15"
                         : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
                     }`}
                   >
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition ${
                         active
                           ? "bg-white/15"
                           : "bg-violet-50 text-violet-600"
                       }`}
                     >
-                      {item.icon}
+                      {
+                        item.icon
+                      }
                     </span>
 
                     <span className="truncate">
-                      {item.label}
+                      {
+                        item.label
+                      }
                     </span>
                   </Link>
                 );
@@ -434,11 +447,11 @@ export default function AdminSidebar({
         </div>
 
         {/* Fixed Bottom */}
-        <div className="shrink-0 border-t border-violet-100 bg-white px-4 py-4">
+        <div className="shrink-0 border-t border-violet-100 bg-white px-4 py-3">
           {canViewSettings && (
             <Link
               href="/settings"
-              className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              className={`flex items-center gap-3 rounded-xl px-4 py-1.5 text-sm font-semibold transition ${
                 isActive(
                   "/settings",
                 )
@@ -447,7 +460,7 @@ export default function AdminSidebar({
               }`}
             >
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
                   isActive(
                     "/settings",
                   )
@@ -480,14 +493,14 @@ export default function AdminSidebar({
 
           {/* Current Admin */}
           <div
-            className={`rounded-2xl border border-violet-100 bg-violet-50/60 p-3 ${
+            className={`rounded-xl border border-violet-100 bg-violet-50/60 p-2.5 ${
               canViewSettings
-                ? "mt-3"
+                ? "mt-2"
                 : ""
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-sm font-bold text-white">
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-700 to-purple-500 text-xs font-bold text-white">
                 {avatarUrl ? (
                   <div
                     role="img"
@@ -496,7 +509,8 @@ export default function AdminSidebar({
                     }
                     className="absolute inset-0 bg-cover bg-center"
                     style={{
-                      backgroundImage: `url("${avatarUrl}")`,
+                      backgroundImage:
+                        `url("${avatarUrl}")`,
                     }}
                   />
                 ) : (
@@ -506,11 +520,15 @@ export default function AdminSidebar({
 
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-slate-800">
-                  {displayName}
+                  {
+                    displayName
+                  }
                 </p>
 
                 <p className="truncate text-xs text-slate-500">
-                  {roleLabel}
+                  {
+                    roleLabel
+                  }
                 </p>
               </div>
             </div>
