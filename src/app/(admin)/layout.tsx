@@ -11,6 +11,12 @@ import {
 
 import { createClient } from "@/lib/supabase/server";
 
+type RoleDirectoryItem = {
+  user_id: string;
+  role: string;
+  is_active: boolean;
+};
+
 export default async function AdminLayout({
   children,
 }: Readonly<{
@@ -19,36 +25,44 @@ export default async function AdminLayout({
   const supabase =
     await createClient();
 
-  const { data: claimsData } =
+  /*
+   * =========================================================
+   * VERIFIED SESSION
+   * =========================================================
+   */
+  const {
+    data: claimsData,
+    error: claimsError,
+  } =
     await supabase.auth.getClaims();
 
   const userId =
     claimsData?.claims?.sub;
 
-  if (!userId) {
+  if (
+    claimsError ||
+    !userId
+  ) {
     redirect("/login");
   }
 
+  /*
+   * =========================================================
+   * ROLE + PROFILE
+   * =========================================================
+   *
+   * Role tidak lagi dibaca langsung dari admin_roles.
+   *
+   * Kita menggunakan secure RPC yang sama dengan
+   * proxy dan User Management.
+   */
   const [
-    {
-      data: adminRole,
-      error: adminRoleError,
-    },
-    {
-      data: userProfile,
-      error: userProfileError,
-    },
+    roleDirectoryResult,
+    userProfileResult,
   ] = await Promise.all([
-    supabase
-      .from("admin_roles")
-      .select(
-        `
-          role,
-          is_active
-        `,
-      )
-      .eq("user_id", userId)
-      .maybeSingle(),
+    supabase.rpc(
+      "get_user_role_directory",
+    ),
 
     supabase
       .from("user_profiles")
@@ -63,39 +77,65 @@ export default async function AdminLayout({
       .maybeSingle(),
   ]);
 
-  if (adminRoleError) {
+  /*
+   * =========================================================
+   * ROLE VALIDATION
+   * =========================================================
+   */
+  if (
+    roleDirectoryResult.error
+  ) {
     console.error(
-      "Unable to load admin role:",
-      adminRoleError,
+      "Unable to load admin role directory:",
+      roleDirectoryResult.error,
     );
 
     redirect("/unauthorized");
   }
 
-  if (
-    !adminRole ||
-    !adminRole.is_active
-  ) {
-    redirect("/unauthorized");
-  }
+  const roleDirectory =
+    Array.isArray(
+      roleDirectoryResult.data,
+    )
+      ? (roleDirectoryResult.data as RoleDirectoryItem[])
+      : [];
 
-  if (
-    !isAdminRole(adminRole.role)
-  ) {
-    console.error(
-      "Unknown admin role:",
-      adminRole.role,
+  const currentRole =
+    roleDirectory.find(
+      (item) =>
+        item.user_id ===
+          userId &&
+        item.is_active,
     );
 
+  if (
+    !currentRole ||
+    !isAdminRole(
+      currentRole.role,
+    )
+  ) {
     redirect("/unauthorized");
   }
 
-  if (userProfileError) {
+  const adminRole =
+    currentRole.role;
+
+  /*
+   * =========================================================
+   * PROFILE
+   * =========================================================
+   */
+  if (
+    userProfileResult.error
+  ) {
     console.error(
       "Unable to load admin profile:",
-      userProfileError,
+      userProfileResult.error,
     );
   }
+
+  const userProfile =
+    userProfileResult.data;
 
   const email =
     userProfile?.email?.trim() ||
@@ -112,31 +152,58 @@ export default async function AdminLayout({
 
   const roleLabel =
     getRoleLabel(
-      adminRole.role,
+      adminRole,
     );
 
+  /*
+   * =========================================================
+   * ADMIN SHELL
+   * =========================================================
+   */
   return (
     <div className="flex min-h-screen bg-[#f8f7ff]">
       <AdminSidebar
-        displayName={displayName}
-        avatarUrl={avatarUrl}
-        role={adminRole.role}
-        roleLabel={roleLabel}
+        displayName={
+          displayName
+        }
+        avatarUrl={
+          avatarUrl
+        }
+        role={
+          adminRole
+        }
+        roleLabel={
+          roleLabel
+        }
       />
 
       <div className="min-w-0 flex flex-1 flex-col">
         <AdminTopbar
-          userId={userId}
-          displayName={displayName}
-          email={email}
-          avatarUrl={avatarUrl}
-          role={adminRole.role}
-          roleLabel={roleLabel}
+          userId={
+            userId
+          }
+          displayName={
+            displayName
+          }
+          email={
+            email
+          }
+          avatarUrl={
+            avatarUrl
+          }
+          role={
+            adminRole
+          }
+          roleLabel={
+            roleLabel
+          }
         />
 
         <main className="flex-1 p-5 sm:p-6 lg:p-8">
           <AdminRouteGuard
-            role={adminRole.role}
+            role={
+              adminRole
+            }
           >
             {children}
           </AdminRouteGuard>

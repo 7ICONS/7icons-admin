@@ -8,11 +8,18 @@ import {
   hasPermission,
   isAdminRole,
   type AdminPermission,
+  type AdminRole,
 } from "@/lib/permissions";
 
 type ProtectedRoute = {
   path: string;
   permission: AdminPermission;
+};
+
+type RoleDirectoryItem = {
+  user_id: string;
+  role: string;
+  is_active: boolean;
 };
 
 const protectedRoutes: ProtectedRoute[] = [
@@ -78,6 +85,28 @@ function getProtectedRoute(
   );
 }
 
+/*
+ * Copy cookie hasil Supabase session refresh
+ * ke response baru seperti redirect.
+ *
+ * Tanpa ini, refresh session dapat berhasil
+ * di server tetapi cookie barunya tidak sampai
+ * ke browser ketika request berakhir dengan
+ * redirect.
+ */
+function copySessionCookies(
+  source: NextResponse,
+  target: NextResponse,
+) {
+  source.cookies
+    .getAll()
+    .forEach((cookie) => {
+      target.cookies.set(cookie);
+    });
+
+  return target;
+}
+
 export async function updateSession(
   request: NextRequest,
 ) {
@@ -86,12 +115,29 @@ export async function updateSession(
       request,
     });
 
+  const supabaseUrl =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL;
+
+  const supabaseKey =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (
+    !supabaseUrl ||
+    !supabaseKey
+  ) {
+    throw new Error(
+      "Missing Supabase environment variables.",
+    );
+  }
+
   const supabase =
     createServerClient(
-      process.env
-        .NEXT_PUBLIC_SUPABASE_URL!,
-      process.env
-        .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      supabaseUrl,
+      supabaseKey,
       {
         cookies: {
           getAll() {
@@ -99,8 +145,17 @@ export async function updateSession(
           },
 
           setAll(cookiesToSet) {
+            /*
+             * Update request cookies so every
+             * Supabase query in this same request
+             * immediately sees the refreshed
+             * session.
+             */
             cookiesToSet.forEach(
-              ({ name, value }) => {
+              ({
+                name,
+                value,
+              }) => {
                 request.cookies.set(
                   name,
                   value,
@@ -108,11 +163,19 @@ export async function updateSession(
               },
             );
 
+            /*
+             * Recreate the pass-through response
+             * using the updated request.
+             */
             supabaseResponse =
               NextResponse.next({
                 request,
               });
 
+            /*
+             * Send refreshed cookies back
+             * to the browser.
+             */
             cookiesToSet.forEach(
               ({
                 name,
@@ -131,14 +194,22 @@ export async function updateSession(
       },
     );
 
-  const { data: claimsData } =
-    await supabase.auth.getClaims();
+  /*
+   * =========================================================
+   * VERIFIED SESSION
+   * =========================================================
+   */
+  const {
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims();
 
   const userId =
     claimsData?.claims?.sub;
 
   const isAuthenticated =
-    Boolean(userId);
+    Boolean(userId) &&
+    !claimsError;
 
   const pathname =
     request.nextUrl.pathname;
@@ -146,10 +217,86 @@ export async function updateSession(
   const protectedRoute =
     getProtectedRoute(pathname);
 
-  // =====================================================
-  // 1. Route membutuhkan login
-  // =====================================================
+  /*
+   * =========================================================
+   * ROLE RESOLVER
+   * =========================================================
+   *
+   * Jangan query admin_roles langsung.
+   *
+   * Gunakan secure RPC yang sudah dipakai
+   * oleh User Management.
+   */
+  let cachedRole:
+    | AdminRole
+    | null
+    | undefined;
 
+  async function resolveAdminRole() {
+    if (
+      cachedRole !==
+      undefined
+    ) {
+      return cachedRole;
+    }
+
+    if (!userId) {
+      cachedRole = null;
+      return cachedRole;
+    }
+
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "get_user_role_directory",
+    );
+
+    if (error) {
+      console.error(
+        "Unable to resolve admin role:",
+        error,
+      );
+
+      cachedRole = null;
+
+      return cachedRole;
+    }
+
+    const roles =
+      Array.isArray(data)
+        ? (data as RoleDirectoryItem[])
+        : [];
+
+    const currentRole =
+      roles.find(
+        (item) =>
+          item.user_id === userId &&
+          item.is_active,
+      );
+
+    if (
+      !currentRole ||
+      !isAdminRole(
+        currentRole.role,
+      )
+    ) {
+      cachedRole = null;
+
+      return cachedRole;
+    }
+
+    cachedRole =
+      currentRole.role;
+
+    return cachedRole;
+  }
+
+  /*
+   * =========================================================
+   * 1. PROTECTED ROUTE REQUIRES LOGIN
+   * =========================================================
+   */
   if (
     !isAuthenticated &&
     protectedRoute
@@ -158,46 +305,38 @@ export async function updateSession(
       request.nextUrl.clone();
 
     loginUrl.pathname = "/login";
+    loginUrl.search = "";
 
     loginUrl.searchParams.set(
       "next",
       pathname,
     );
 
-    return NextResponse.redirect(
-      loginUrl,
+    const redirectResponse =
+      NextResponse.redirect(
+        loginUrl,
+      );
+
+    return copySessionCookies(
+      supabaseResponse,
+      redirectResponse,
     );
   }
 
-  // =====================================================
-  // 2. User login dan sedang membuka protected route
-  // =====================================================
-
+  /*
+   * =========================================================
+   * 2. PROTECTED ROUTE ROLE + PERMISSION
+   * =========================================================
+   */
   if (
     isAuthenticated &&
     userId &&
     protectedRoute
   ) {
-    const {
-      data: adminRole,
-      error: adminRoleError,
-    } = await supabase
-      .from("admin_roles")
-      .select(
-        `
-          role,
-          is_active
-        `,
-      )
-      .eq("user_id", userId)
-      .maybeSingle();
+    const adminRole =
+      await resolveAdminRole();
 
-    if (
-      adminRoleError ||
-      !adminRole ||
-      !adminRole.is_active ||
-      !isAdminRole(adminRole.role)
-    ) {
+    if (!adminRole) {
       const unauthorizedUrl =
         request.nextUrl.clone();
 
@@ -206,14 +345,20 @@ export async function updateSession(
 
       unauthorizedUrl.search = "";
 
-      return NextResponse.redirect(
-        unauthorizedUrl,
+      const redirectResponse =
+        NextResponse.redirect(
+          unauthorizedUrl,
+        );
+
+      return copySessionCookies(
+        supabaseResponse,
+        redirectResponse,
       );
     }
 
     const allowed =
       hasPermission(
-        adminRole.role,
+        adminRole,
         protectedRoute.permission,
       );
 
@@ -226,39 +371,32 @@ export async function updateSession(
 
       unauthorizedUrl.search = "";
 
-      return NextResponse.redirect(
-        unauthorizedUrl,
+      const redirectResponse =
+        NextResponse.redirect(
+          unauthorizedUrl,
+        );
+
+      return copySessionCookies(
+        supabaseResponse,
+        redirectResponse,
       );
     }
   }
 
-  // =====================================================
-  // 3. Admin aktif tidak perlu melihat login lagi
-  // =====================================================
-
+  /*
+   * =========================================================
+   * 3. ACTIVE ADMIN DOES NOT NEED LOGIN PAGE
+   * =========================================================
+   */
   if (
     isAuthenticated &&
     userId &&
     pathname === "/login"
   ) {
-    const {
-      data: adminRole,
-    } = await supabase
-      .from("admin_roles")
-      .select(
-        `
-          role,
-          is_active
-        `,
-      )
-      .eq("user_id", userId)
-      .maybeSingle();
+    const adminRole =
+      await resolveAdminRole();
 
-    if (
-      adminRole &&
-      adminRole.is_active &&
-      isAdminRole(adminRole.role)
-    ) {
+    if (adminRole) {
       const dashboardUrl =
         request.nextUrl.clone();
 
@@ -267,8 +405,14 @@ export async function updateSession(
 
       dashboardUrl.search = "";
 
-      return NextResponse.redirect(
-        dashboardUrl,
+      const redirectResponse =
+        NextResponse.redirect(
+          dashboardUrl,
+        );
+
+      return copySessionCookies(
+        supabaseResponse,
+        redirectResponse,
       );
     }
   }

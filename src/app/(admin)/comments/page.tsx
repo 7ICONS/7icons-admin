@@ -4,6 +4,7 @@ import CommentsManagement, {
   type CommentItem,
   type CommentStatus,
 } from "@/components/comments/CommentsManagement";
+
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -16,6 +17,12 @@ type AdminRole =
   | "editor"
   | "moderator"
   | "representative";
+
+type RoleDirectoryItem = {
+  user_id: string;
+  role: AdminRole;
+  is_active: boolean;
+};
 
 type CommentRow = {
   id: string;
@@ -35,41 +42,109 @@ export default async function CommentsPage() {
     await createClient();
 
   /*
-   * Current account + role.
+   * =========================================================
+   * VERIFIED SESSION
+   * =========================================================
    */
   const {
-    data: authData,
-  } = await supabase.auth.getUser();
+    data: claimsData,
+    error: claimsError,
+  } =
+    await supabase.auth.getClaims();
 
-  const currentUser =
-    authData.user;
+  const userId =
+    claimsData?.claims?.sub;
 
-  let currentRole:
-    | AdminRole
-    | null = null;
+  if (
+    claimsError ||
+    !userId
+  ) {
+    return (
+      <section>
+        <p className="text-sm font-semibold text-violet-600">
+          Comments
+        </p>
 
-  if (currentUser) {
-    const {
-      data: roleData,
-    } = await supabase
-      .from("admin_roles")
-      .select(
-        `
-          role,
-          is_active
-        `,
-      )
-      .eq(
-        "user_id",
-        currentUser.id,
-      )
-      .maybeSingle();
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+          Comments
+        </h1>
 
-    if (roleData?.is_active) {
-      currentRole =
-        roleData.role as AdminRole;
-    }
+        <div className="mt-8 rounded-2xl border border-red-100 bg-red-50 p-6">
+          <p className="font-semibold text-red-700">
+            Unable to access Comments
+          </p>
+
+          <p className="mt-2 text-sm text-red-600">
+            Your admin session could not be verified.
+          </p>
+        </div>
+      </section>
+    );
   }
+
+  /*
+   * =========================================================
+   * CURRENT ROLE
+   * =========================================================
+   *
+   * Gunakan secure role directory RPC.
+   * Jangan query admin_roles langsung.
+   */
+  const {
+    data: roleDirectoryData,
+    error: roleDirectoryError,
+  } =
+    await supabase.rpc(
+      "get_user_role_directory",
+    );
+
+  if (roleDirectoryError) {
+    console.error(
+      "Unable to load Comments role directory:",
+      roleDirectoryError,
+    );
+
+    return (
+      <section>
+        <p className="text-sm font-semibold text-violet-600">
+          Comments
+        </p>
+
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+          Comments
+        </h1>
+
+        <div className="mt-8 rounded-2xl border border-red-100 bg-red-50 p-6">
+          <p className="font-semibold text-red-700">
+            Unable to access Comments
+          </p>
+
+          <p className="mt-2 text-sm text-red-600">
+            Your account role could not be loaded.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  const roleDirectory =
+    Array.isArray(
+      roleDirectoryData,
+    )
+      ? (roleDirectoryData as RoleDirectoryItem[])
+      : [];
+
+  const currentRoleData =
+    roleDirectory.find(
+      (item) =>
+        item.user_id ===
+          userId &&
+        item.is_active,
+    );
+
+  const currentRole =
+    currentRoleData?.role ??
+    null;
 
   if (!currentRole) {
     return (
@@ -100,39 +175,45 @@ export default async function CommentsPage() {
     "representative";
 
   /*
-   * RLS determines what this account
-   * is allowed to see:
+   * =========================================================
+   * COMMENTS
+   * =========================================================
    *
-   * Staff → all comments
-   * Representative → comments on own content
+   * RLS tetap menjadi security layer terakhir.
    */
   const {
     data: commentsData,
     error: commentsError,
-  } = await supabase
-    .from("comments")
-    .select(
-      `
-        id,
-        article_id,
-        gallery_album_id,
-        parent_id,
-        author_id,
-        body,
-        status,
-        moderated_by,
-        moderated_at,
-        created_at
-      `,
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false,
-      },
-    );
+  } =
+    await supabase
+      .from("comments")
+      .select(
+        `
+          id,
+          article_id,
+          gallery_album_id,
+          parent_id,
+          author_id,
+          body,
+          status,
+          moderated_by,
+          moderated_at,
+          created_at
+        `,
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        },
+      );
 
   if (commentsError) {
+    console.error(
+      "Unable to load comments:",
+      commentsError,
+    );
+
     return (
       <section>
         <p className="text-sm font-semibold text-violet-600">
@@ -163,7 +244,9 @@ export default async function CommentsPage() {
       []) as CommentRow[];
 
   /*
-   * Collect related IDs.
+   * =========================================================
+   * RELATED IDS
+   * =========================================================
    */
   const authorIds =
     Array.from(
@@ -210,12 +293,9 @@ export default async function CommentsPage() {
     );
 
   /*
-   * Load author information.
-   *
-   * If RLS does not expose another
-   * user's profile to a Representative,
-   * the UI safely falls back to
-   * Community Member.
+   * =========================================================
+   * AUTHORS
+   * =========================================================
    */
   const authorMap =
     new Map<
@@ -226,22 +306,28 @@ export default async function CommentsPage() {
       }
     >();
 
-  if (authorIds.length > 0) {
+  if (
+    authorIds.length >
+    0
+  ) {
     const {
       data: profileData,
-    } = await supabase
-      .from("user_profiles")
-      .select(
-        `
-          id,
-          display_name,
-          email
-        `,
-      )
-      .in(
-        "id",
-        authorIds,
-      );
+    } =
+      await supabase
+        .from(
+          "user_profiles",
+        )
+        .select(
+          `
+            id,
+            display_name,
+            email
+          `,
+        )
+        .in(
+          "id",
+          authorIds,
+        );
 
     (
       profileData ?? []
@@ -264,7 +350,9 @@ export default async function CommentsPage() {
   }
 
   /*
-   * Article titles.
+   * =========================================================
+   * ARTICLE TITLES
+   * =========================================================
    */
   const articleMap =
     new Map<
@@ -272,21 +360,25 @@ export default async function CommentsPage() {
       string
     >();
 
-  if (articleIds.length > 0) {
+  if (
+    articleIds.length >
+    0
+  ) {
     const {
       data: articleData,
-    } = await supabase
-      .from("articles")
-      .select(
-        `
-          id,
-          title
-        `,
-      )
-      .in(
-        "id",
-        articleIds,
-      );
+    } =
+      await supabase
+        .from("articles")
+        .select(
+          `
+            id,
+            title
+          `,
+        )
+        .in(
+          "id",
+          articleIds,
+        );
 
     (
       articleData ?? []
@@ -301,7 +393,9 @@ export default async function CommentsPage() {
   }
 
   /*
-   * Gallery album titles.
+   * =========================================================
+   * GALLERY TITLES
+   * =========================================================
    */
   const galleryMap =
     new Map<
@@ -315,20 +409,21 @@ export default async function CommentsPage() {
   ) {
     const {
       data: galleryData,
-    } = await supabase
-      .from(
-        "gallery_albums",
-      )
-      .select(
-        `
-          id,
-          title
-        `,
-      )
-      .in(
-        "id",
-        galleryAlbumIds,
-      );
+    } =
+      await supabase
+        .from(
+          "gallery_albums",
+        )
+        .select(
+          `
+            id,
+            title
+          `,
+        )
+        .in(
+          "id",
+          galleryAlbumIds,
+        );
 
     (
       galleryData ?? []
@@ -343,8 +438,9 @@ export default async function CommentsPage() {
   }
 
   /*
-   * Build final data expected
-   * by CommentsManagement.
+   * =========================================================
+   * COMMENT VIEW MODEL
+   * =========================================================
    */
   const comments:
     CommentItem[] =
@@ -366,11 +462,13 @@ export default async function CommentsPage() {
                 comment.article_id,
               ) ??
               "Article"
+
             : comment.gallery_album_id
               ? galleryMap.get(
                   comment.gallery_album_id,
                 ) ??
                 "Gallery Album"
+
               : "Unknown Content";
 
         return {
@@ -409,7 +507,8 @@ export default async function CommentsPage() {
             "Community Member",
 
           author_email:
-            author?.email || "",
+            author?.email ||
+            "",
 
           target_title:
             targetTitle,
@@ -422,9 +521,13 @@ export default async function CommentsPage() {
       },
     );
 
+  /*
+   * =========================================================
+   * UI
+   * =========================================================
+   */
   return (
     <section>
-      {/* Header */}
       <div className="mb-8">
         <p className="text-sm font-semibold text-violet-600">
           {isRepresentative
@@ -439,9 +542,11 @@ export default async function CommentsPage() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
           {isRepresentative
             ? "View community comments on your own Articles and Gallery albums and reply directly as an ICONIA Representative."
+
             : currentRole ===
                 "editor"
               ? "View comments submitted across Articles and Gallery content."
+
               : "Review, moderate, and manage community comments submitted across Articles and Gallery content."}
         </p>
       </div>
