@@ -16,9 +16,7 @@ type UserStatusActionsProps = {
   currentStatus: UserStatus;
 };
 
-function formatStatus(
-  status: UserStatus,
-) {
+function formatStatus(status: UserStatus) {
   return (
     status.charAt(0).toUpperCase() +
     status.slice(1)
@@ -120,6 +118,7 @@ export default function UserStatusActions({
       currentStatus
     ) {
       closeModal();
+
       return;
     }
 
@@ -129,21 +128,16 @@ export default function UserStatusActions({
     const supabase =
       createClient();
 
-    const {
-      data,
-      error: updateError,
-    } = await supabase
-      .from("user_profiles")
-      .update({
-        status: selectedStatus,
-        updated_at:
-          new Date().toISOString(),
-      })
-      .eq("id", userId)
-      .select("id, status")
-      .single();
+    const { error: updateError } =
+      await supabase.rpc(
+        "moderate_user_status",
+        {
+          target_user_id: userId,
+          new_status: selectedStatus,
+        },
+      );
 
-    if (updateError || !data) {
+    if (updateError) {
       console.error(
         "Unable to update user status:",
         updateError,
@@ -154,6 +148,7 @@ export default function UserStatusActions({
       );
 
       setIsSaving(false);
+
       return;
     }
 
