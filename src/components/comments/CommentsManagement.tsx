@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -36,6 +37,18 @@ export type CommentItem = {
   target_type: CommentTargetType;
 };
 
+export type CommentReportItem = {
+  report_id: string;
+  comment_id: string;
+  reporter_user_id: string;
+  reporter_name: string;
+  reporter_email: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  created_at: string;
+};
+
 type AdminRole =
   | "super_admin"
   | "admin"
@@ -46,6 +59,8 @@ type AdminRole =
 type CommentsManagementProps = {
   comments: CommentItem[];
   currentRole: AdminRole;
+  focusedCommentId?: string | null;
+  commentReports?: CommentReportItem[];
 };
 
 const statusOptions: Array<{
@@ -89,6 +104,18 @@ function formatDate(
   ).format(
     new Date(dateString),
   );
+}
+
+function formatReportReason(
+  reason: string,
+) {
+  return reason
+    .replace(/_/g, " ")
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase(),
+    );
 }
 
 function StatusBadge({
@@ -135,11 +162,16 @@ function StatusBadge({
 export default function CommentsManagement({
   comments,
   currentRole,
+  focusedCommentId = null,
+  commentReports = [],
 }: CommentsManagementProps) {
   const router = useRouter();
 
   const supabase =
-    createClient();
+    useMemo(
+      () => createClient(),
+      [],
+    );
 
   const [
     searchQuery,
@@ -201,6 +233,110 @@ export default function CommentsManagement({
     currentRole ===
       "moderator";
 
+  /*
+   * =========================================================
+   * REPORT DIRECTORY
+   * =========================================================
+   */
+  const reportsByComment =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          CommentReportItem[]
+        >();
+
+      for (
+        const report of
+        commentReports
+      ) {
+        const existing =
+          map.get(
+            report.comment_id,
+          ) ?? [];
+
+        existing.push(
+          report,
+        );
+
+        map.set(
+          report.comment_id,
+          existing,
+        );
+      }
+
+      return map;
+    }, [
+      commentReports,
+    ]);
+
+  const totalOpenReports =
+    commentReports.length;
+
+  const reportedCommentCount =
+    reportsByComment.size;
+
+  /*
+   * =========================================================
+   * NOTIFICATION FOCUS
+   * =========================================================
+   */
+  const focusedCommentExists =
+    Boolean(
+      focusedCommentId &&
+        comments.some(
+          (comment) =>
+            comment.id ===
+            focusedCommentId,
+        ),
+    );
+
+  useEffect(() => {
+    if (
+      !focusedCommentId ||
+      !focusedCommentExists
+    ) {
+      return;
+    }
+
+    const frame =
+      window.requestAnimationFrame(
+        () => {
+          const element =
+            document.getElementById(
+              `comment-${focusedCommentId}`,
+            );
+
+          if (!element) {
+            return;
+          }
+
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+
+          element.focus({
+            preventScroll: true,
+          });
+        },
+      );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frame,
+      );
+    };
+  }, [
+    focusedCommentId,
+    focusedCommentExists,
+  ]);
+
+  /*
+   * =========================================================
+   * FILTERS
+   * =========================================================
+   */
   const normalizedSearch =
     searchQuery
       .trim()
@@ -259,6 +395,11 @@ export default function CommentsManagement({
       targetFilter,
     ]);
 
+  /*
+   * =========================================================
+   * MODERATION
+   * =========================================================
+   */
   async function moderateComment(
     commentId: string,
     status:
@@ -367,6 +508,86 @@ export default function CommentsManagement({
     }
   }
 
+  /*
+   * =========================================================
+   * REPORT MODERATION
+   * =========================================================
+   */
+  async function dismissReports(
+    commentId: string,
+  ) {
+    const reports =
+      reportsByComment.get(
+        commentId,
+      ) ?? [];
+
+    if (
+      reports.length === 0
+    ) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        reports.length === 1
+          ? "Dismiss this report? The comment itself will remain unchanged."
+          : `Dismiss all ${reports.length} open reports for this comment? The comment itself will remain unchanged.`,
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyCommentId(
+      commentId,
+    );
+
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const {
+        error,
+      } = await supabase.rpc(
+        "dismiss_comment_reports",
+        {
+          p_comment_id:
+            commentId,
+        },
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      setSuccessMessage(
+        reports.length === 1
+          ? "Comment report dismissed."
+          : `${reports.length} comment reports dismissed.`,
+      );
+
+      router.refresh();
+    } catch (error) {
+      console.error(
+        "Comment report dismissal failed:",
+        error,
+      );
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to dismiss comment reports.",
+      );
+    } finally {
+      setBusyCommentId(null);
+    }
+  }
+
+  /*
+   * =========================================================
+   * REPRESENTATIVE REPLY
+   * =========================================================
+   */
   function openReply(
     comment: CommentItem,
   ) {
@@ -455,6 +676,17 @@ export default function CommentsManagement({
     }
   }
 
+  function clearFocusedComment() {
+    router.replace(
+      "/comments",
+    );
+  }
+
+  /*
+   * =========================================================
+   * SUMMARY
+   * =========================================================
+   */
   const pendingCount =
     comments.filter(
       (comment) =>
@@ -479,6 +711,55 @@ export default function CommentsManagement({
   return (
     <>
       <div className="space-y-6">
+        {/* Notification Focus */}
+        {focusedCommentId && (
+          <div
+            className={`rounded-2xl border px-5 py-4 ${
+              focusedCommentExists
+                ? "border-violet-200 bg-violet-50"
+                : "border-amber-200 bg-amber-50"
+            }`}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p
+                  className={`text-sm font-semibold ${
+                    focusedCommentExists
+                      ? "text-violet-800"
+                      : "text-amber-800"
+                  }`}
+                >
+                  {focusedCommentExists
+                    ? "Comment opened from notification"
+                    : "Comment unavailable"}
+                </p>
+
+                <p
+                  className={`mt-1 text-xs leading-5 ${
+                    focusedCommentExists
+                      ? "text-violet-600"
+                      : "text-amber-700"
+                  }`}
+                >
+                  {focusedCommentExists
+                    ? "The selected comment has been highlighted below so you can review it immediately."
+                    : "The comment referenced by this notification is no longer available or is not visible to your current role."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  clearFocusedComment
+                }
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-white px-3 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
+              >
+                Clear Focus
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Messages */}
         {errorMessage &&
           !replyComment && (
@@ -494,7 +775,13 @@ export default function CommentsManagement({
         )}
 
         {/* Summary */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          className={`grid gap-4 sm:grid-cols-2 ${
+            canModerate
+              ? "xl:grid-cols-5"
+              : "xl:grid-cols-4"
+          }`}
+        >
           <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm">
             <p className="text-sm font-semibold text-slate-500">
               {isRepresentative
@@ -540,6 +827,40 @@ export default function CommentsManagement({
                 : spamCount}
             </p>
           </div>
+
+          {canModerate && (
+            <div className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-500">
+                  Open Reports
+                </p>
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5 text-red-500"
+                >
+                  <path d="M5 3v18" />
+                  <path d="M5 4h11l-2 4 2 4H5" />
+                </svg>
+              </div>
+
+              <p className="mt-2 text-3xl font-bold text-red-600">
+                {totalOpenReports}
+              </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                {reportedCommentCount}{" "}
+                {reportedCommentCount ===
+                1
+                  ? "comment"
+                  : "comments"}{" "}
+                reported
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Search / Filters */}
@@ -694,13 +1015,74 @@ export default function CommentsManagement({
                     busyCommentId ===
                     comment.id;
 
+                  const isFocused =
+                    focusedCommentId ===
+                    comment.id;
+
+                  const reports =
+                    reportsByComment.get(
+                      comment.id,
+                    ) ?? [];
+
+                  const hasReports =
+                    reports.length >
+                    0;
+
+                  const reasonCountMap =
+                    new Map<
+                      string,
+                      number
+                    >();
+
+                  for (
+                    const report of
+                    reports
+                  ) {
+                    reasonCountMap.set(
+                      report.reason,
+                      (
+                        reasonCountMap.get(
+                          report.reason,
+                        ) ?? 0
+                      ) + 1,
+                    );
+                  }
+
+                  const reasonCounts =
+                    Array.from(
+                      reasonCountMap.entries(),
+                    );
+
                   return (
                     <article
+                      id={`comment-${comment.id}`}
                       key={
                         comment.id
                       }
-                      className="p-5 transition hover:bg-violet-50/20 sm:p-6"
+                      tabIndex={-1}
+                      className={`relative p-5 outline-none transition sm:p-6 ${
+                        isFocused
+                          ? "bg-violet-50/80 ring-2 ring-inset ring-violet-400"
+                          : hasReports
+                            ? "bg-red-50/20 hover:bg-red-50/30"
+                            : "hover:bg-violet-50/20"
+                      }`}
                     >
+                      {isFocused && (
+                        <div className="mb-4 flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white">
+                            {hasReports
+                              ? "Reported Comment"
+                              : "Focused Comment"}
+                          </span>
+
+                          <span className="text-xs text-violet-600">
+                            Opened from admin
+                            notification
+                          </span>
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                         <div className="min-w-0 flex-1">
                           {/* Author */}
@@ -720,6 +1102,27 @@ export default function CommentsManagement({
                             {comment.parent_id && (
                               <span className="rounded-full border border-violet-100 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-600">
                                 Reply
+                              </span>
+                            )}
+
+                            {hasReports && (
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  className="h-3.5 w-3.5"
+                                >
+                                  <path d="M5 3v18" />
+                                  <path d="M5 4h11l-2 4 2 4H5" />
+                                </svg>
+
+                                {reports.length}{" "}
+                                {reports.length ===
+                                1
+                                  ? "Report"
+                                  : "Reports"}
                               </span>
                             )}
                           </div>
@@ -856,6 +1259,162 @@ export default function CommentsManagement({
                             )}
                         </div>
                       </div>
+
+                      {/* Reports */}
+                      {canModerate &&
+                        hasReports && (
+                          <div className="mt-6 overflow-hidden rounded-2xl border border-red-200 bg-red-50/60">
+                            <div className="flex flex-col gap-4 border-b border-red-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    className="h-5 w-5 text-red-600"
+                                  >
+                                    <path d="M5 3v18" />
+                                    <path d="M5 4h11l-2 4 2 4H5" />
+                                  </svg>
+
+                                  <p className="font-bold text-red-900">
+                                    {reports.length}{" "}
+                                    {reports.length ===
+                                    1
+                                      ? "Open Report"
+                                      : "Open Reports"}
+                                  </p>
+                                </div>
+
+                                <p className="mt-1 text-xs leading-5 text-red-700/70">
+                                  Review the
+                                  reports below
+                                  before taking
+                                  moderation
+                                  action.
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={
+                                  isBusy
+                                }
+                                onClick={() =>
+                                  dismissReports(
+                                    comment.id,
+                                  )
+                                }
+                                className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                              >
+                                {isBusy
+                                  ? "Processing..."
+                                  : reports.length ===
+                                      1
+                                    ? "Dismiss Report"
+                                    : "Dismiss Reports"}
+                              </button>
+                            </div>
+
+                            {/* Reason Summary */}
+                            <div className="border-b border-red-100 px-5 py-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-red-700">
+                                Report Reasons
+                              </p>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {reasonCounts.map(
+                                  ([
+                                    reason,
+                                    count,
+                                  ]) => (
+                                    <span
+                                      key={
+                                        reason
+                                      }
+                                      className="inline-flex items-center rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700"
+                                    >
+                                      {formatReportReason(
+                                        reason,
+                                      )}
+
+                                      {count >
+                                        1 &&
+                                        ` ×${count}`}
+                                    </span>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Individual Reports */}
+                            <div className="divide-y divide-red-100">
+                              {reports.map(
+                                (
+                                  report,
+                                  index,
+                                ) => (
+                                  <div
+                                    key={
+                                      report.report_id
+                                    }
+                                    className="px-5 py-4"
+                                  >
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-red-600">
+                                          Report{" "}
+                                          #
+                                          {index +
+                                            1}
+                                        </p>
+
+                                        <p className="mt-2 text-sm font-bold text-slate-900">
+                                          {
+                                            report.reporter_name
+                                          }
+                                        </p>
+
+                                        <p className="mt-1 break-all text-xs text-slate-500">
+                                          {
+                                            report.reporter_email
+                                          }
+                                        </p>
+                                      </div>
+
+                                      <div className="shrink-0 text-left sm:text-right">
+                                        <span className="inline-flex rounded-full border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700">
+                                          {formatReportReason(
+                                            report.reason,
+                                          )}
+                                        </span>
+
+                                        <p className="mt-2 text-xs text-slate-400">
+                                          {formatDate(
+                                            report.created_at,
+                                          )}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="mt-4 rounded-xl border border-red-100 bg-white/80 p-4">
+                                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                                        Details
+                                      </p>
+
+                                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                                        {report.details?.trim()
+                                          ? report.details
+                                          : "No additional details were provided."}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
                     </article>
                   );
                 },

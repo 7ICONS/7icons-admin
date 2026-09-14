@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import CommentsManagement, {
   type CommentItem,
+  type CommentReportItem,
   type CommentStatus,
 } from "@/components/comments/CommentsManagement";
 
@@ -37,9 +38,25 @@ type CommentRow = {
   created_at: string;
 };
 
-export default async function CommentsPage() {
-  const supabase =
-    await createClient();
+type CommentsPageProps = {
+  searchParams: Promise<{
+    comment?: string;
+  }>;
+};
+
+export default async function CommentsPage({
+  searchParams,
+}: CommentsPageProps) {
+  const supabase = await createClient();
+
+  const { comment: commentParam } =
+    await searchParams;
+
+  const focusedCommentId =
+    typeof commentParam === "string" &&
+    commentParam.trim()
+      ? commentParam.trim()
+      : null;
 
   /*
    * =========================================================
@@ -49,8 +66,7 @@ export default async function CommentsPage() {
   const {
     data: claimsData,
     error: claimsError,
-  } =
-    await supabase.auth.getClaims();
+  } = await supabase.auth.getClaims();
 
   const userId =
     claimsData?.claims?.sub;
@@ -75,7 +91,8 @@ export default async function CommentsPage() {
           </p>
 
           <p className="mt-2 text-sm text-red-600">
-            Your admin session could not be verified.
+            Your admin session could not be
+            verified.
           </p>
         </div>
       </section>
@@ -93,10 +110,9 @@ export default async function CommentsPage() {
   const {
     data: roleDirectoryData,
     error: roleDirectoryError,
-  } =
-    await supabase.rpc(
-      "get_user_role_directory",
-    );
+  } = await supabase.rpc(
+    "get_user_role_directory",
+  );
 
   if (roleDirectoryError) {
     console.error(
@@ -120,7 +136,8 @@ export default async function CommentsPage() {
           </p>
 
           <p className="mt-2 text-sm text-red-600">
-            Your account role could not be loaded.
+            Your account role could not be
+            loaded.
           </p>
         </div>
       </section>
@@ -163,7 +180,8 @@ export default async function CommentsPage() {
           </p>
 
           <p className="mt-2 text-sm text-red-600">
-            Your current role could not be verified.
+            Your current role could not be
+            verified.
           </p>
         </div>
       </section>
@@ -173,6 +191,14 @@ export default async function CommentsPage() {
   const isRepresentative =
     currentRole ===
     "representative";
+
+  const canModerate =
+    currentRole ===
+      "super_admin" ||
+    currentRole ===
+      "admin" ||
+    currentRole ===
+      "moderator";
 
   /*
    * =========================================================
@@ -184,29 +210,28 @@ export default async function CommentsPage() {
   const {
     data: commentsData,
     error: commentsError,
-  } =
-    await supabase
-      .from("comments")
-      .select(
-        `
-          id,
-          article_id,
-          gallery_album_id,
-          parent_id,
-          author_id,
-          body,
-          status,
-          moderated_by,
-          moderated_at,
-          created_at
-        `,
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false,
-        },
-      );
+  } = await supabase
+    .from("comments")
+    .select(
+      `
+        id,
+        article_id,
+        gallery_album_id,
+        parent_id,
+        author_id,
+        body,
+        status,
+        moderated_by,
+        moderated_at,
+        created_at
+      `,
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      },
+    );
 
   if (commentsError) {
     console.error(
@@ -242,6 +267,38 @@ export default async function CommentsPage() {
   const commentRows =
     (commentsData ??
       []) as CommentRow[];
+
+  /*
+   * =========================================================
+   * OPEN COMMENT REPORTS
+   * =========================================================
+   *
+   * Hanya Super Admin, Admin, dan Moderator
+   * yang memanggil secure RPC ini.
+   */
+  let commentReports:
+    CommentReportItem[] = [];
+
+  if (canModerate) {
+    const {
+      data: reportData,
+      error: reportError,
+    } = await supabase.rpc(
+      "get_admin_comment_reports",
+    );
+
+    if (reportError) {
+      console.error(
+        "Unable to load comment reports:",
+        reportError,
+      );
+    } else if (
+      Array.isArray(reportData)
+    ) {
+      commentReports =
+        reportData as CommentReportItem[];
+    }
+  }
 
   /*
    * =========================================================
@@ -557,6 +614,12 @@ export default async function CommentsPage() {
         }
         currentRole={
           currentRole
+        }
+        focusedCommentId={
+          focusedCommentId
+        }
+        commentReports={
+          commentReports
         }
       />
     </section>
