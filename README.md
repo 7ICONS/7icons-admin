@@ -9,12 +9,12 @@
 <h1 align="center">7ICONS Admin</h1>
 
 <p align="center">
-  <strong>Administrative Dashboard for the 7ICONS & ICONIA Digital Platform</strong>
+  <strong>Administrative Dashboard for the 7ICONS & ICONIA Digital Ecosystem</strong>
 </p>
 
 <p align="center">
-  Internal management application for content, members, schedules,
-  fan representatives, users, comments, media, and platform administration.
+  Internal administration application for content, members, schedules,
+  galleries, applications, moderation, notifications, and platform management.
 </p>
 
 <p align="center">
@@ -28,107 +28,136 @@
 **7ICONS Admin** is the internal administration dashboard for the
 7ICONS & ICONIA digital ecosystem.
 
-The application provides a centralized interface for managing content
-and platform data that will eventually be displayed on the public
-7ICONS website.
+It provides a centralized interface for managing the data and workflows used by
+the public 7ICONS website and the wider ecosystem.
 
-The Admin Panel is maintained as a separate application from the
-public website.
+The Admin Panel is maintained as a separate Next.js application so the public
+website can remain focused on visitors and the ICONIA community while
+administrative tools stay isolated behind authenticated access.
 
 ```text
 7ICONS Digital Ecosystem
 │
 ├── 7icons-web
-│   └── Public Website
+│   └── Public Website & Community Experience
 │
-└── 7icons-admin
-    └── Administration Dashboard
+├── 7icons-admin
+│   └── Administration Dashboard
+│
+└── 7icons-apply
+    └── Fan Representative Application Portal
 ```
 
-Both applications are designed to connect to the same backend
-infrastructure.
+The three applications share the same Supabase backend foundation.
 
 ---
 
 # 🌐 Live Deployment
 
-The Admin Panel is deployed independently through Vercel.
+Admin Panel:
 
 ```text
 https://7icons-admin.vercel.app
 ```
 
-Public website:
+Public Website:
 
 ```text
 https://7icons-web.vercel.app
 ```
 
+The applications are deployed independently through Vercel.
+
+---
+
+# 🚀 Current Release
+
+## V1.0 — Live
+
+The main Admin Panel foundation and core administration workflows are complete
+and deployed.
+
+The project has moved beyond its original dashboard prototype and now includes
+real Supabase-backed management, moderation, application review, and
+notification workflows.
+
+Current major capabilities include:
+
+- Secure Supabase authentication
+- Protected administrative routes
+- Admin role authorization
+- Content management
+- Article CRUD
+- Member CRUD
+- Schedule CRUD
+- Gallery album management
+- Fan Representative workflows
+- Application review
+- Representative invitation workflow
+- Comment report review
+- Admin notifications
+- Supabase Storage integration
+- Production deployment through Vercel
+
 ---
 
 # 🎯 Purpose
 
-The main purpose of `7icons-admin` is to remove the need to manually
-edit source files every time website content needs to be changed.
+The purpose of `7icons-admin` is to allow routine platform management without
+requiring direct edits to the source code of the public website.
 
-The public website currently contains several local TypeScript data
-sources such as:
-
-```text
-src/data/blogArticles.ts
-src/data/members.ts
-src/data/schedule.ts
-src/data/fanRepresentatives.ts
-```
-
-The long-term architecture is:
+The current architecture follows this model:
 
 ```text
+Administrator
+      ↓
 7ICONS Admin
       ↓
-Create / Edit Content
+Create / Edit / Review Content
       ↓
 Supabase
       ↓
-7ICONS Web
+7ICONS Web / 7icons-apply
       ↓
-Updated Public Content
+Updated Ecosystem Data
 ```
 
-This allows content management to happen through an administration
-interface instead of direct source-code modification.
+This keeps content management separate from frontend development.
 
 ---
 
-# 🏗 Current Architecture
+# 🏗 Architecture
 
 ```text
-                      Supabase
-          ┌──────────────────────────┐
-          │                          │
-          │ Authentication           │
-          │ PostgreSQL Database      │
-          │ Row Level Security       │
-          │ Admin Roles              │
-          │ Future Storage           │
-          │                          │
-          └────────────┬─────────────┘
-                       │
-             ┌─────────┴──────────┐
-             │                    │
-             ▼                    ▼
-     ┌───────────────┐    ┌───────────────┐
-     │  7icons-web   │    │ 7icons-admin  │
-     │               │    │               │
-     │ Public Site   │    │ Admin Panel   │
-     └───────────────┘    └───────┬───────┘
-                                  │
-                                  ▼
-                           Authenticated Admin
+                         Supabase
+             ┌──────────────────────────┐
+             │                          │
+             │ Authentication           │
+             │ PostgreSQL Database      │
+             │ Row Level Security       │
+             │ Storage                  │
+             │ Admin Roles              │
+             │ Applications             │
+             │ Reports                  │
+             │ Notifications            │
+             │                          │
+             └────────────┬─────────────┘
+                          │
+             ┌────────────┼─────────────┐
+             │            │             │
+             ▼            ▼             ▼
+      ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+      │ 7icons-web  │ │7icons-admin │ │7icons-apply │
+      │             │ │             │ │             │
+      │ Public Site │ │ Admin Panel │ │ Apply Portal│
+      └─────────────┘ └──────┬──────┘ └─────────────┘
+                             │
+                             ▼
+                    Authorized Admin
 ```
 
-The public website and Admin Panel remain separate Next.js
-applications while sharing the same Supabase backend.
+Each frontend remains an independent Next.js application while sharing the
+backend infrastructure.
 
 ---
 
@@ -136,20 +165,22 @@ applications while sharing the same Supabase backend.
 
 ## Frontend
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Next.js App Router
-- React Compiler
+- **Next.js**
+- **React**
+- **TypeScript**
+- **Tailwind CSS**
+- **Next.js App Router**
+- **React Compiler**
 
 ## Backend
 
-- Supabase
-- PostgreSQL
-- Supabase Authentication
-- Row Level Security
-- Supabase Data API
+- **Supabase**
+- **PostgreSQL**
+- **Supabase Authentication**
+- **Supabase Storage**
+- **Supabase Data API**
+- **Row Level Security**
+- **PostgreSQL Functions / RPC**
 
 ## Authentication
 
@@ -163,16 +194,16 @@ applications while sharing the same Supabase backend.
 
 - Git
 - GitHub
-- VS Code
 - npm
+- VS Code
 - Vercel
 
 ---
 
 # 🎨 Design Direction
 
-The Admin Panel remains visually connected to the public 7ICONS
-website while using a more productivity-focused interface.
+The Admin Panel remains visually connected to the public 7ICONS website while
+using a more productivity-focused interface.
 
 Primary visual direction:
 
@@ -188,7 +219,7 @@ Soft Shadows
 Clean Dashboard Layout
 ```
 
-The interface should feel:
+The interface is designed to feel:
 
 ```text
 Modern
@@ -212,121 +243,49 @@ Admin Logo
 Admin Favicon
 ```
 
-Current favicon:
+Custom favicon:
 
 ```text
 src/app/icon.png
 ```
 
-The old default Next.js:
-
-```text
-src/app/favicon.ico
-```
-
-has been removed in favor of the custom 7ICONS Admin favicon.
+The default Next.js favicon is not used.
 
 ---
 
 # 🖥 Admin Dashboard
 
-The Dashboard V1 is complete and responsive.
+The Admin Dashboard provides the central overview and navigation for platform
+administration.
 
-Current layout:
+Main interface:
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │ Sidebar        │ Topbar                                     │
 │                ├─────────────────────────────────────────────│
 │ Dashboard      │ Dashboard                                  │
-│ Articles       │                                             │
-│ Members        │ Statistic Cards                            │
-│ Schedule       │                                             │
-│ Fan Reps       │ Recent Activity      Upcoming Schedule     │
-│ Users          │                                             │
-│ Comments       │ Quick Actions                              │
-│ Media          │                                             │
-│                │                                             │
-│ Settings       │                                             │
+│ Articles       │                                            │
+│ Members        │ Statistics / Platform Overview             │
+│ Schedule       │                                            │
+│ Gallery        │ Activity / Notifications                   │
+│ Applications   │                                            │
+│ Reports        │ Upcoming Schedule                          │
+│ Representatives│                                            │
+│ Users          │ Quick Actions                              │
+│ Comments       │                                            │
+│ Media          │                                            │
+│ Settings       │                                            │
 └────────────────┴─────────────────────────────────────────────┘
 ```
 
----
-
-# 📊 Dashboard V1
-
-Dashboard V1 currently includes:
-
-## Summary Cards
-
-```text
-Total Articles
-Total Members
-Upcoming Events
-Fan Representatives
-Registered Users
-Pending Comments
-```
-
-Current values are development placeholders.
-
-They will later be replaced with live database statistics.
-
----
-
-## Recent Activity
-
-Displays placeholder administration activity such as:
-
-```text
-Article published
-Member updated
-Schedule added
-Fan Representative added
-Article updated
-```
-
-A proper admin activity log is planned for a future phase.
-
----
-
-## Upcoming Schedule
-
-Displays upcoming events including:
-
-```text
-Event Date
-Event Title
-Event Category
-Location
-Time
-```
-
-This currently uses development data.
-
-Future versions will load events directly from Supabase.
-
----
-
-## Quick Actions
-
-Current shortcuts:
-
-```text
-New Article
-Add Member
-Add Schedule
-Add Fan Representative
-Upload Media
-```
-
-These routes are already prepared for future CRUD modules.
+The layout is shared across protected administrative routes.
 
 ---
 
 # 📱 Responsive Admin Interface
 
-The Admin Panel has been tested for:
+The Admin Panel supports:
 
 ```text
 Desktop ✅
@@ -334,66 +293,24 @@ Tablet  ✅
 Mobile  ✅
 ```
 
-Mobile features include:
+Responsive behavior includes:
 
 - Responsive dashboard
-- Two-column statistic cards
-- Compact Quick Actions
+- Adaptive statistic cards
 - Mobile navigation drawer
 - Overlay navigation
-- Mobile admin profile
-- Responsive schedule cards
-- Responsive activity list
-
----
-
-# 🧭 Current Routes
-
-```text
-/
-│
-├── /login
-│
-├── /unauthorized
-│
-├── /dashboard
-│
-├── /articles
-│   └── /new
-│
-├── /members
-│   └── /new
-│
-├── /schedule
-│   └── /new
-│
-├── /representatives
-│   └── /new
-│
-├── /users
-│
-├── /comments
-│
-├── /media
-│
-└── /settings
-```
-
-Administrative routes are grouped using:
-
-```text
-src/app/(admin)/
-```
-
-This allows all Admin Panel pages to share the same protected layout.
+- Responsive administration tables
+- Responsive forms
+- Responsive review pages
+- Mobile-friendly admin profile controls
 
 ---
 
 # 🔐 Authentication
 
-Admin authentication is now connected to **Supabase Auth**.
+Admin authentication uses **Supabase Auth**.
 
-Current login flow:
+Current flow:
 
 ```text
 /login
@@ -406,26 +323,22 @@ Session Created
    ↓
 Admin Role Check
    ↓
-Dashboard
+Protected Admin Area
 ```
 
-Login uses:
-
-```text
-supabase.auth.signInWithPassword()
-```
+Authentication alone does not automatically grant administrative access.
 
 ---
 
 # 🍪 Session Management
 
-Supabase sessions are handled using:
+Supabase sessions are handled with:
 
 ```text
 @supabase/ssr
 ```
 
-Current Supabase utilities:
+Main utilities:
 
 ```text
 src/lib/supabase/
@@ -434,63 +347,41 @@ src/lib/supabase/
 └── proxy.ts
 ```
 
-Root session proxy:
-
-```text
-proxy.ts
-```
-
-The proxy helps maintain authentication cookies and refresh
+The session proxy keeps authentication cookies synchronized and refreshes
 Supabase sessions when required.
 
 ---
 
 # 🛡 Protected Admin Routes
 
-All routes inside:
+Administrative pages are protected server-side.
+
+A visitor without a valid session is redirected to:
 
 ```text
-src/app/(admin)/
-```
-
-are protected server-side.
-
-The Admin Layout verifies authentication before rendering
-administrative content.
-
-Current behavior:
-
-```text
-Not Logged In
-      ↓
-Admin Route
-      ↓
 /login
 ```
 
-Authenticated users must also pass an admin role check.
+An authenticated user without an authorized administrative role is redirected
+to:
+
+```text
+/unauthorized
+```
+
+This keeps authentication and authorization as separate security layers.
 
 ---
 
 # 👑 Admin Role System
 
-Administrative access is controlled using the Supabase table:
+Administrative access is backed by:
 
 ```text
-public.admin_roles
+admin_roles
 ```
 
-Current schema concept:
-
-```text
-user_id
-role
-is_active
-created_at
-updated_at
-```
-
-Supported roles:
+Role foundation:
 
 ```text
 super_admin
@@ -499,30 +390,21 @@ editor
 moderator
 ```
 
-Current development account uses:
+The system can use roles and active status to determine whether an authenticated
+account is allowed to access administrative functionality.
 
-```text
-super_admin
-```
-
----
-
-# 🔒 Role Protection
-
-Authentication alone does **not** grant access to the Admin Panel.
-
-Current authorization flow:
+Typical authorization flow:
 
 ```text
 User logs in
     ↓
-Supabase Auth validates credentials
+Supabase validates session
     ↓
 User ID retrieved
     ↓
 admin_roles checked
     ↓
-Admin record found?
+Active administrative role?
     │
     ├── No
     │    ↓
@@ -530,94 +412,41 @@ Admin record found?
     │
     └── Yes
          ↓
-     is_active = true?
-         │
-         ├── No → /unauthorized
-         │
-         └── Yes
-              ↓
-          Dashboard ✅
+      Admin Panel
 ```
-
-This prevents regular Supabase users from accessing administrative
-routes.
 
 ---
 
-# 🚫 Unauthorized Access
+# 🔐 Security Model
 
-Authenticated users without an active admin role are redirected to:
-
-```text
-/unauthorized
-```
-
-The Unauthorized page provides:
-
-```text
-Access Denied message
-Go to 7ICONS Web
-Sign Out
-```
-
-This behavior has been tested successfully with a non-admin
-Supabase test account.
-
----
-
-# 🚪 Logout
-
-Admins can securely sign out through the Admin Profile menu.
-
-Current flow:
-
-```text
-Admin Profile
-    ↓
-Sign Out
-    ↓
-Supabase Session Removed
-    ↓
-/login
-```
-
-Logout is also available from the Unauthorized page.
-
----
-
-# 🔐 Current Security Model
-
-Current security layers:
+The Admin Panel uses multiple security layers:
 
 ```text
 Layer 1
 Supabase Authentication
 
 Layer 2
-Supabase Session / Cookie Verification
+Session / Cookie Verification
 
 Layer 3
-Protected (admin) Layout
+Protected Admin Layout
 
 Layer 4
-admin_roles Authorization
+Admin Role Authorization
 
 Layer 5
-is_active Admin Status
+Active Admin Status
 
 Layer 6
 Row Level Security
+
+Layer 7
+Database Functions / Policies
 ```
 
-The Admin Panel does **not** rely on a hidden URL for security.
+The application does not rely on a hidden URL for security.
 
-Knowing:
-
-```text
-7icons-admin.vercel.app
-```
-
-does not grant administrative access.
+Knowing the Admin Panel URL does not grant access.
 
 ---
 
@@ -630,13 +459,13 @@ Never hardcode passwords.
 
 Never commit secrets.
 
-Never expose Service Role keys to the browser.
+Never expose privileged backend keys to the browser.
 
 Never rely on hidden URLs for protection.
 
 Every admin route must verify authentication.
 
-Administrative access must verify roles.
+Administrative access must verify authorization.
 
 Database access must use Row Level Security.
 
@@ -655,234 +484,127 @@ Local Supabase configuration is stored in:
 .env.local
 ```
 
-Current variables:
+Main public Supabase variables:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-The project `.gitignore` contains:
+Environment files are excluded from Git.
 
-```gitignore
-.env*
-```
-
-so local environment values are **not committed to GitHub**.
+Production variables are configured separately in Vercel.
 
 ---
 
-# ☁️ Vercel Environment Variables
+# 🗄 Shared Supabase Backend
 
-Production Supabase variables are configured separately in Vercel:
+The Admin Panel shares the same backend foundation used by the rest of the
+7ICONS ecosystem.
 
-```text
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-```
+The backend contains data and workflows for areas such as:
 
-These are configured for:
+- Admin roles
+- User profiles
+- Articles
+- Members
+- Schedule events
+- Gallery albums
+- Gallery photos
+- Fan Representative applications
+- Representatives
+- Comments
+- Comment reports
+- Admin notifications
 
-```text
-Production
-Preview
-Development
-```
-
-No database password or Supabase Service Role key is currently stored
-in the frontend application.
-
----
-
-# 🗄 Current Supabase Project
-
-Backend project:
-
-```text
-7icons-platform
-```
-
-Organization:
-
-```text
-7ICONS
-```
-
-Region:
-
-```text
-Singapore
-```
-
-The backend is intended to eventually serve both:
-
-```text
-7icons-admin
-7icons-web
-```
-
----
-
-# 🗃 Current Database
-
-Currently implemented custom table:
-
-```text
-admin_roles
-```
-
-Planned future tables:
-
-```text
-profiles
-articles
-members
-schedule_events
-fan_representatives
-comments
-media
-admin_activity
-```
-
-Tables should not be created randomly.
-
-Each module should be designed together with:
-
-```text
-Schema
-Constraints
-Indexes
-RLS
-Policies
-Admin permissions
-Public permissions
-```
-
-before production use.
-
----
-
-# 🔐 Row Level Security
-
-Row Level Security is treated as a core part of the backend.
-
-The project was created with automatic RLS enabled for new tables.
-
-The `admin_roles` table uses RLS and allows authenticated users to
-read only their own administrative role.
-
-Future tables must have explicit policies before being used by
-`7icons-web` or `7icons-admin`.
+Row Level Security and database-side functions are used where appropriate to
+control access and protect sensitive workflows.
 
 ---
 
 # 📰 Article Management
 
-The next major development module is:
+Article Management is connected to Supabase and replaces the original
+source-file-only workflow.
+
+Current functionality includes:
+
+- View articles
+- Create article
+- Edit article
+- Delete article
+- Draft / published state
+- Featured article state
+- Search
+- Filtering
+- Slug management
+- Cover image upload
+- Cover replacement
+- Storage cleanup
+- Publication information
+
+The public Blog and individual article pages consume the Supabase-backed article
+data.
 
 ```text
-Articles Management V1
-```
-
-This module will eventually replace manual editing of:
-
-```text
-src/data/blogArticles.ts
-```
-
-Planned functionality:
-
-```text
-View Articles
-Create Article
-Edit Article
-Delete Article
-Draft Article
-Publish Article
-Unpublish Article
-Search Articles
-Filter Articles
-Manage Cover Image
-Manage Slug
-Manage Publication Date
-```
-
-Possible database fields:
-
-```text
-id
-title
-slug
-excerpt
-content
-category
-cover_image
-status
-published_at
-created_at
-updated_at
-created_by
-updated_by
-```
-
-Possible statuses:
-
-```text
-draft
-published
-archived
+Admin
+  ↓
+Article CRUD
+  ↓
+Supabase
+  ↓
+7icons-web /blog
 ```
 
 ---
 
 # 👥 Member Management
 
-Planned module:
+Members Management supports real CRUD operations.
 
-```text
-Members Management
-```
+Current functionality includes:
 
-Future functionality:
+- View members
+- Create member
+- Edit member
+- Delete member
+- Current / former member status
+- Published / hidden state
+- Display ordering
+- Member biography
+- Profile story sections
+- Portrait upload
+- Portrait replacement
+- Portrait removal
+- Supabase Storage cleanup
 
-```text
-View Members
-Add Member
-Edit Member
-Manage Portrait
-Change Member Status
-Manage Biography
-Manage Member Story
-Manage Display Order
-Archive Former Members
-```
-
-Possible status values:
-
-```text
-current
-former
-```
+Member data can be consumed by the public Members archive and individual member
+pages.
 
 ---
 
 # 📅 Schedule Management
 
-Future Schedule tools will support:
+Schedule administration is backed by Supabase.
 
-```text
-View Events
-Create Event
-Edit Event
-Delete Event
-Manage Event Category
-Manage Date
-Manage Time
-Manage Location
-Manage Description
-```
+Current functionality includes:
 
-Categories:
+- View events
+- Create event
+- Edit event
+- Delete event
+- Published state
+- Featured state
+- Upcoming / past event handling
+- Calendar view
+- Monthly navigation
+- Event date management
+- Event time
+- Event location
+- Category
+- Event detail information
+
+Main categories include:
 
 ```text
 Performance
@@ -892,161 +614,278 @@ TV
 Other
 ```
 
----
-
-# 💜 Fan Representative Management
-
-Future capabilities:
-
-```text
-View Representatives
-Add Representative
-Edit Representative
-Remove Representative
-Manage Region
-Manage City
-Manage Portrait
-Manage Instagram
-Manage WhatsApp
-Manage Community Mission
-Manage Community Motto
-Manage Representative Story
-```
+The public Schedule system reads from the same backend data.
 
 ---
 
-# 👤 User Management
+# 🖼 Gallery Management
 
-Once authentication is added to the public website, Admin Panel
-user management may include:
+Gallery administration uses an album-based architecture.
+
+Current functionality includes:
+
+- Create album
+- Edit album metadata
+- Delete album
+- Upload multiple photos
+- Add photos to an existing album
+- Remove individual photos
+- Delete album photos from Storage
+- Storage cleanup when content is removed
+
+Gallery data uses structures such as:
 
 ```text
-View Registered Users
-View Profiles
-View Registration Date
-View Account Status
-Suspend User
-Restore User
-View Comment Activity
+gallery_albums
+gallery_album_photos
 ```
 
-Administrators must never be able to view user passwords.
+with Supabase Storage handling uploaded gallery media.
 
 ---
 
-# 💬 Comment Management
+# 💜 Fan Representative Workflow
 
-Future comment moderation:
+Fan Representative management is integrated with the wider application
+ecosystem.
 
-```text
-View Comments
-Search Comments
-Filter Comments
-Approve Comments
-Hide Comments
-Remove Comments
-Review Reports
-View Comment Author
-```
-
-Possible statuses:
+The workflow connects:
 
 ```text
-published
-pending
-hidden
-removed
+7icons-apply
+      ↓
+Application Submitted
+      ↓
+7icons-admin
+      ↓
+Review
+      ↓
+Approve / Reject
+      ↓
+Representative Workflow
 ```
+
+Representative records can then be used by the public Fan Representatives
+section.
 
 ---
 
-# 🖼 Media Management
+# 📝 Applications
 
-Future Media Library:
+The Admin Panel includes an application review workflow for submissions coming
+from `7icons-apply`.
 
-```text
-Article Covers
-Member Portraits
-Fan Representative Portraits
-Community Images
-Website Assets
-```
-
-Planned storage:
+Supported application categories can include:
 
 ```text
-Supabase Storage
+Representative
+Volunteer
+Community
+Event
 ```
+
+Typical application lifecycle:
+
+```text
+Submitted
+   ↓
+Under Review
+   ↓
+Approved / Rejected
+```
+
+Applications may also enter a withdrawn state when applicable.
+
+Administrators can inspect applicant information and type-specific form data
+before making a review decision.
+
+Review data can include:
+
+- Application status
+- Applicant identity
+- Email
+- Phone
+- Region
+- City
+- Application-specific form data
+- Internal review notes
+- Reviewer
+- Review timestamp
 
 ---
 
-# 📝 Admin Activity Log
+# ✉️ Representative Invitations
 
-A future activity log should record meaningful administrative actions.
+Approved Representative workflows can continue into an invitation process.
 
-Examples:
+The ecosystem supports linking the application process with a representative
+account/profile flow.
 
-```text
-Admin created article
-Admin edited member
-Admin deleted event
-Admin published article
-Admin changed representative
-Admin moderated comment
-```
-
-Possible structure:
+Typical process:
 
 ```text
-admin_id
-action
-entity_type
-entity_id
-description
-created_at
+Application Approved
+      ↓
+Representative Invitation
+      ↓
+Applicant Opens Invitation
+      ↓
+Sign In / Create Account
+      ↓
+Representative Account Flow
 ```
 
-This will become especially important when multiple administrators
-are introduced.
+This keeps application review and user-account onboarding connected without
+requiring manual account creation by an administrator.
 
 ---
 
-# 👥 Planned Admin Roles
+# 🚨 Comment Reports
 
-Current role foundation:
+Community moderation includes a report system for public comments.
+
+Reports can move through moderation states such as:
 
 ```text
-Super Admin
-├── Full platform access
-├── Manage administrators
-├── Manage users
-├── Manage content
-└── Manage settings
-
-Admin
-├── Manage content
-├── Manage members
-├── Manage schedule
-├── Manage representatives
-└── Moderate comments
-
-Editor
-├── Manage articles
-├── Manage schedule
-└── Limited publishing permissions
-
-Moderator
-├── Moderate comments
-└── Limited user moderation
+open
+dismissed
+actioned
 ```
 
-Only the Super Admin workflow has been tested so far.
+The Admin Panel provides a review workflow so reports can be inspected and
+resolved by authorized administrators.
 
-Detailed permission enforcement will be implemented later.
+The reporting architecture also prevents the same user from repeatedly creating
+duplicate reports for the same comment.
 
 ---
 
-# 📁 Current Project Structure
+# 🔔 Admin Notifications
+
+Administrative notifications surface important events that require attention.
+
+Notification workflows include events such as:
+
+- New applications
+- Comment reports
+- Review-related platform activity
+
+A notification can contain:
+
+```text
+Type
+Title
+Message
+Destination
+Read / Unread State
+Timestamp
+```
+
+This allows admins to jump directly from the notification to the relevant
+application, report, or review screen.
+
+---
+
+# 👤 User & Community Administration
+
+The Admin Panel shares the same account backend used by the public website.
+
+Administrative tooling is designed around account safety and moderation rather
+than password access.
+
+Admins never receive access to user passwords.
+
+Relevant account information can include:
+
+- User identity
+- Profile information
+- Account status
+- Registration information
+- Community activity
+- Moderation state
+
+Account restrictions are enforced through backend account status checks rather
+than exposing authentication credentials.
+
+---
+
+# 💬 Comment Moderation
+
+The wider moderation system supports community comments and replies.
+
+Administrative workflows can work with moderation states and reports without
+exposing private authentication data.
+
+Relevant capabilities include:
+
+- Review community comments
+- Review reports
+- Inspect comment author information
+- Take moderation action
+- Dismiss reports
+- Track resolved reports
+
+---
+
+# 🗂 Supabase Storage
+
+Supabase Storage is used by content-management modules that require media.
+
+Examples include:
+
+- Article cover images
+- Member portraits
+- Gallery photos
+- Representative images
+
+Delete and replacement workflows are designed to clean up outdated files rather
+than leave unnecessary media behind.
+
+---
+
+# 🧭 Main Routes
+
+The exact route structure may continue evolving, but the Admin Panel is
+organized around areas such as:
+
+```text
+/
+│
+├── /login
+│
+├── /unauthorized
+│
+├── /dashboard
+│
+├── /articles
+│
+├── /members
+│
+├── /schedule
+│
+├── /gallery
+│
+├── /representatives
+│
+├── /applications
+│
+├── /reports
+│
+├── /users
+│
+├── /comments
+│
+├── /media
+└── /settings
+```
+
+Administrative routes share the protected admin shell.
+
+---
+
+# 📁 Project Structure
+
+A simplified structure:
 
 ```text
 7icons-admin/
@@ -1056,42 +895,33 @@ Detailed permission enforcement will be implemented later.
 │
 ├── public/
 │   └── brand/
-│       └── 7icons-admin-logo.png
 │
 ├── src/
-│   │
 │   ├── app/
-│   │   │
 │   │   ├── (admin)/
 │   │   │   ├── dashboard/
 │   │   │   ├── articles/
 │   │   │   ├── members/
 │   │   │   ├── schedule/
+│   │   │   ├── gallery/
 │   │   │   ├── representatives/
+│   │   │   ├── applications/
+│   │   │   ├── reports/
 │   │   │   ├── users/
 │   │   │   ├── comments/
 │   │   │   ├── media/
-│   │   │   ├── settings/
-│   │   │   └── layout.tsx
+│   │   │   └── settings/
 │   │   │
 │   │   ├── login/
 │   │   ├── unauthorized/
-│   │   ├── icon.png
 │   │   ├── globals.css
+│   │   ├── icon.png
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   │
 │   ├── components/
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── layout/
-│   │   └── ui/
-│   │
 │   └── lib/
 │       └── supabase/
-│           ├── client.ts
-│           ├── proxy.ts
-│           └── server.ts
 │
 ├── proxy.ts
 ├── .gitignore
@@ -1105,6 +935,9 @@ Detailed permission enforcement will be implemented later.
 ├── README.md
 └── tsconfig.json
 ```
+
+The exact internal structure can evolve as new administration modules are
+introduced.
 
 ---
 
@@ -1134,22 +967,30 @@ Admin login:
 http://localhost:3000/login
 ```
 
+Backend-dependent functionality requires the appropriate Supabase environment
+variables.
+
 ---
 
 # 🏗 Production Build
 
-Before major deployments:
+Before pushing major updates:
 
 ```bash
 npm run build
 ```
 
-A successful build verifies that the application can be compiled for
-production.
+A successful production build should be completed before deployment.
 
 ---
 
-# ☁️ Deployment Workflow
+# ☁️ Deployment
+
+The Admin Panel is deployed through **Vercel**.
+
+Updates pushed to the production branch are automatically built and deployed.
+
+Deployment flow:
 
 ```text
 Local Development
@@ -1165,245 +1006,117 @@ Vercel Build
 Production
 ```
 
-The Vercel project automatically deploys updates pushed to:
+Production:
 
 ```text
-main
+https://7icons-admin.vercel.app
 ```
 
 ---
 
-# 🌿 Git Workflow
+# 🧩 7ICONS Ecosystem
 
-Basic workflow:
-
-```bash
-git add .
-git commit -m "your commit message"
-git push
-```
-
-Examples:
+The Admin Panel works as the internal management layer of the complete
+ecosystem.
 
 ```text
-feat: add admin dashboard
-feat: add supabase authentication
-feat: add admin role protection
-feat: add article management
-feat: add schedule management
-fix: protect admin routes
-docs: update admin documentation
+                  Supabase
+                     │
+          ┌──────────┼──────────┐
+          │          │          │
+          ▼          ▼          ▼
+
+    7icons-web   7icons-admin   7icons-apply
+
+    Public Site     Admin       Application
+    & Community     Tools       Portal
+```
+
+Each repository has its own responsibility while sharing platform data where
+appropriate.
+
+---
+
+# ✅ Development Status
+
+```text
+Repository & Project Foundation          ✅
+Admin Branding                           ✅
+Responsive Admin Shell                   ✅
+Dashboard                                ✅
+
+Supabase Integration                     ✅
+Supabase Authentication                  ✅
+Session Persistence                      ✅
+Protected Admin Routes                   ✅
+Admin Role Verification                  ✅
+Unauthorized Protection                  ✅
+Logout                                   ✅
+Row Level Security Foundation            ✅
+
+Articles CRUD                            ✅
+Article Cover Storage                    ✅
+Public Article Integration               ✅
+
+Members CRUD                             ✅
+Member Portrait Storage                  ✅
+Public Member Integration                ✅
+
+Schedule CRUD                            ✅
+Calendar / Event Management              ✅
+Public Schedule Integration              ✅
+
+Gallery Album CRUD                       ✅
+Multi-photo Upload                       ✅
+Gallery Storage Cleanup                  ✅
+
+Applications Workflow                    ✅
+Application Review                       ✅
+Approve / Reject                         ✅
+Representative Invitation Flow           ✅
+
+Comment Reports                          ✅
+Report Review                            ✅
+Admin Notifications                      ✅
+
+Production Build                         ✅
+GitHub Integration                       ✅
+Vercel Deployment                        ✅
+Production Authentication                ✅
 ```
 
 ---
 
-# 🚦 Development Phases
+# 🔮 Future Development
 
-```text
-PHASE 0 — Repository Preparation
-├── GitHub Repository               ✅
-├── README                          ✅
-├── Banner                          ✅
-└── Planning                        ✅
+Future updates can continue expanding the administration experience with:
 
-PHASE 1 — Application Foundation
-├── Next.js                         ✅
-├── TypeScript                      ✅
-├── Tailwind CSS                    ✅
-├── Project Structure               ✅
-├── Admin Branding                  ✅
-└── Custom Favicon                  ✅
-
-PHASE 2 — Admin UI Foundation
-├── Admin Login UI                  ✅
-├── Sidebar                         ✅
-├── Topbar                          ✅
-├── Admin Layout                    ✅
-├── Mobile Drawer                   ✅
-└── Responsive Admin Shell          ✅
-
-PHASE 3 — Dashboard V1
-├── Statistic Cards                 ✅
-├── Recent Activity                 ✅
-├── Upcoming Schedule               ✅
-└── Quick Actions                   ✅
-
-PHASE 4 — Backend Foundation
-├── Supabase Project                ✅
-├── Environment Variables           ✅
-├── Supabase Browser Client         ✅
-├── Supabase Server Client          ✅
-├── Session Proxy                   ✅
-├── Authentication                  ✅
-├── Logout                          ✅
-├── Protected Routes                ✅
-├── admin_roles                     ✅
-├── Super Admin                     ✅
-├── Non-Admin Protection            ✅
-└── Production Auth                 ✅
-
-PHASE 5 — Content Management
-├── Articles CRUD                   ⏳
-├── Members CRUD                    ⏳
-├── Schedule CRUD                   ⏳
-└── Fan Representatives CRUD        ⏳
-
-PHASE 6 — Public Website Integration
-├── Connect 7icons-web              ⏳
-├── Replace Local Article Data      ⏳
-├── Replace Local Member Data       ⏳
-├── Replace Local Schedule Data     ⏳
-└── Replace Local Representative Data ⏳
-
-PHASE 7 — Community Management
-├── Public User Authentication      ⏳
-├── User Profiles                   ⏳
-├── Comments                        ⏳
-├── Moderation                      ⏳
-└── Account Activity                ⏳
-
-PHASE 8 — Administration Expansion
-├── Multiple Admin Permissions      ⏳
-├── Activity Logs                   ⏳
-├── Media Management                ⏳
-└── Advanced Settings               ⏳
-```
+- More granular role permissions
+- Expanded multi-admin workflows
+- Richer activity logging
+- Newsletter subscriber management
+- Newsletter campaign tools
+- Additional moderation tools
+- More advanced dashboard statistics
+- Additional bulk content actions
+- Expanded Media Library tools
+- Advanced Settings
+- Additional ecosystem notifications
+- Further accessibility and UX improvements
 
 ---
 
-# ✅ Current Status
+# 🏁 Current Milestone
 
-```text
-GitHub Repository                 ✅
-README Banner                     ✅
-Next.js Application              ✅
-Admin Branding                   ✅
-Custom Favicon                   ✅
+The original goal of moving routine platform management away from direct
+TypeScript data editing has been achieved for the core content workflow.
 
-Admin Login UI                   ✅
-Admin Dashboard                  ✅
-Sidebar                          ✅
-Topbar                           ✅
-Mobile Navigation Drawer         ✅
-Desktop Responsive               ✅
-Tablet Responsive                ✅
-Mobile Responsive                ✅
-
-Vercel Deployment                ✅
-
-Supabase Project                 ✅
-Supabase Connection              ✅
-Browser Client                   ✅
-Server Client                    ✅
-Session Proxy                    ✅
-
-Admin Authentication             ✅
-Session Persistence              ✅
-Login Redirect                   ✅
-Logout                           ✅
-Protected Admin Routes           ✅
-
-admin_roles Table                ✅
-Super Admin Access               ✅
-Non-Admin Rejection              ✅
-Unauthorized Page                ✅
-Production Authentication        ✅
-
-Articles Management              ⏳
-Members Management               ⏳
-Schedule Management              ⏳
-Fan Representative Management   ⏳
-User Management                  ⏳
-Comment Moderation               ⏳
-Media Management                 ⏳
-```
-
----
-
-# 📌 Next Development Target
-
-The next major milestone is:
-
-```text
-ARTICLES MANAGEMENT V1
-```
-
-Recommended development order:
-
-```text
-1. Design articles database schema
-        ↓
-2. Create articles table
-        ↓
-3. Configure RLS
-        ↓
-4. Configure admin policies
-        ↓
-5. Build Articles List
-        ↓
-6. Build Create Article
-        ↓
-7. Build Edit Article
-        ↓
-8. Build Delete Article
-        ↓
-9. Add Draft / Published status
-        ↓
-10. Test Admin CRUD
-        ↓
-11. Connect articles to 7icons-web
-```
-
-Once Articles Management works correctly, the same architecture can
-be reused for:
-
-```text
-Members
-Schedule
-Fan Representatives
-```
-
----
-
-# 🎯 Current Milestone
-
-The Admin Foundation milestone is complete.
-
-```text
-7icons-admin runs locally               ✅
-Admin Login UI exists                   ✅
-Dashboard Shell exists                  ✅
-Sidebar works                           ✅
-Topbar works                            ✅
-Dashboard V1 works                      ✅
-Responsive layout works                 ✅
-Production build succeeds               ✅
-GitHub is connected                      ✅
-Vercel deployment is online             ✅
-
-Supabase is connected                    ✅
-Admin login works                        ✅
-Session works                            ✅
-Logout works                             ✅
-Admin routes are protected               ✅
-Admin roles are verified                 ✅
-Non-admin users are blocked              ✅
-Production authentication works          ✅
-```
-
-The project is now ready to move from **foundation development**
-into **real content management**.
-
----
-
-# 🏁 Long-Term Goal
-
-The long-term goal is to transform:
+The ecosystem has evolved from:
 
 ```text
 Developer
     ↓
-Edit TypeScript File
+Edit Source File
     ↓
 Commit
     ↓
@@ -1412,36 +1125,37 @@ Push
 Deploy
 ```
 
-into:
+toward:
 
 ```text
 Administrator
     ↓
 7ICONS Admin
     ↓
-Create / Edit Content
+Create / Edit / Review
     ↓
 Supabase
     ↓
-7ICONS Web
-    ↓
-Content Updated
+7ICONS Ecosystem
 ```
 
-The public website should eventually receive content without requiring
-manual source-code edits for routine content management.
+This allows the platform to continue growing without requiring source-code
+changes for every routine content update.
 
 ---
 
 # 💜 Project Philosophy
 
-The Admin Panel exists behind the scenes so the public experience can
-remain simple, organized, and focused on the community.
+The Admin Panel exists behind the scenes so the public experience can remain
+simple, organized, and focused on the community.
 
 ```text
 Manage the platform.
+
 Preserve the content.
+
 Support the community.
+
 Continue the story.
 ```
 
@@ -1457,7 +1171,7 @@ At the center of the ecosystem:
 </p>
 
 <p align="center">
-  Administrative Dashboard for the 7ICONS & ICONIA Digital Platform
+  Administrative Dashboard for the 7ICONS & ICONIA Digital Ecosystem
 </p>
 
 <p align="center">
